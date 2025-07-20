@@ -6,7 +6,7 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack screenOptions={{ headerShown: true }}>
           <Stack.Screen name="(tabs)" />
         </Stack>
       </ThemeProvider>

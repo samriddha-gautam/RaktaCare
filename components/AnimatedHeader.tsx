@@ -62,7 +62,6 @@ const AnimatedHeader: React.FC<AnimatedHeaderProps> = ({
       ]}
     >
       <View style={headerStyles.headerContent}>
-        {/* Profile Button */}
         <TouchableOpacity
           style={{
             flex: 1,

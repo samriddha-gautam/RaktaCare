@@ -10,6 +10,7 @@ export interface Theme {
     text: string;
     textSecondary: string;
     border: string;
+    shadow:string;
   };
   spacing: {
     xs: number;
@@ -25,10 +26,11 @@ export const lightTheme: Theme = {
   colors: {
     background: '#ffffff',
     surface: '#f8f9fa',
-    primary: '#007AFF',
+    primary: '#FF6B6B',
     text: '#000000',
     textSecondary: '#666666',
     border: '#e1e8ed',
+    shadow:'#000000'
   },
   spacing: {
     xs: 4,
@@ -44,10 +46,11 @@ export const darkTheme: Theme = {
   colors: {
     background: '#000000',
     surface: '#1c1c1e',
-    primary: '#0A84FF',
-    text: '#ffffff',
+    primary: '#FF6B6B',
+    text: '#c4bfbfff',
     textSecondary: '#8e8e93',
     border: '#38383a',
+    shadow:'#ffffff'
   },
   spacing: {
     xs: 4,
@@ -69,10 +72,11 @@ export const createGlobalStyles = (theme: Theme) => StyleSheet.create({
     backgroundColor: theme.colors.surface,
   },
   screenPadding: {
-    paddingTop: theme.spacing.sm,
+    paddingTop: theme.spacing.md,
+    marginTop:theme.spacing.xl
   },
   text: {
-    fontSize: 16,
+    fontSize: 20,
     color: theme.colors.text,
   },
   textSecondary: {
@@ -91,5 +95,6 @@ export const createGlobalStyles = (theme: Theme) => StyleSheet.create({
     marginVertical: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    shadowColor:theme.colors.shadow,
   },
 });

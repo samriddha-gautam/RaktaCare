@@ -1,5 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React from "react";
+import { createGlobalStyles } from "@/styles/globalStyles";
+import { useTheme } from "@/contexts/ThemeContext";
 
 
   const recentrequests = [
@@ -7,17 +9,20 @@ import React from "react";
     { id: 2, title: 'B+', description: 'Need B positive blood for my mother' },
     { id: 3, title: 'AB-', description: 'My dad needs AB- blood urgently please help!!' },
     { id: 4, title: 'AB-', description: 'My dad needs AB- blood urgently please help!!' },
-    { id: 5, title: 'AB-', description: 'My dad needs AB- blood urgently please help!!' },
-
-
+    { id: 5, title: 'B-', description: 'My dad needs B- blood urgently please help!!' },
+    { id: 6, title: 'A-', description: 'My dad needs A- blood urgently please help!!' },
+    { id: 7, title: 'AB+', description: 'My dad needs AB+ blood urgently please help!!' },
+    { id: 8, title: 'A+', description: 'My brother needs A+ blood urgently please help!!' },
   ];
 
 const Cards = () => {
+  const { theme } = useTheme();
+  const gstyles = createGlobalStyles(theme);
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Recent Requests</Text>
+      <Text style={[styles.sectionTitle,gstyles.text]}>Recent Requests</Text>
       {recentrequests.map((request) => (
-        <TouchableOpacity key={request.id} style={styles.recentCard} activeOpacity={0.8}>
+        <TouchableOpacity key={request.id} style={[gstyles.card,styles.recentCard]} activeOpacity={0.8}>
           <View style={styles.recentImage} />
           <View style={styles.recentContent}>
             <Text style={styles.recentTitle}>{request.title}</Text>
@@ -52,7 +57,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     flexDirection: 'row',
     padding: 15,
-    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,

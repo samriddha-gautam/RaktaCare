@@ -6,6 +6,8 @@ import {
   StyleSheet,
 } from "react-native";
 import React from "react";
+import { createGlobalStyles } from "@/styles/globalStyles";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const categories = [
   { id: 1, name: "A+", color: "#FF6B6B" },
@@ -18,12 +20,12 @@ const categories = [
   { id: 8, name: "O-", color: "#FF6B6B" },
 ];
 
-
-
 const HorizontalScroll = () => {
+  const { theme } = useTheme();
+  const gstyles = createGlobalStyles(theme);
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Blood Groups</Text>
+      <Text style={[styles.sectionTitle,gstyles.text]}>Blood Groups</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {categories.map((category) => (
           <TouchableOpacity

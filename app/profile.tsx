@@ -1,24 +1,24 @@
+import ThemeToggle from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
+import { createGlobalStyles } from "@/styles/globalStyles";
+import React from "react";
 import {
+  SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
-  SafeAreaView,
   TextInput,
-  ScrollView,
+  View,
 } from "react-native";
-import React from "react";
-import ThemeToggle from "@/components/ThemeToggle";
-import { createGlobalStyles } from "@/styles/globalStyles";
-import { useTheme } from "@/contexts/ThemeContext";
 
 const profile = () => {
   const { theme } = useTheme();
-  const globalStyles = createGlobalStyles(theme);
+  const gStyles = createGlobalStyles(theme);
   
   return (
-    <SafeAreaView style={[globalStyles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={globalStyles.screenPadding}>
-        <Text style={globalStyles.title}>Profile</Text>
+    <SafeAreaView style={[gStyles.container, { backgroundColor: theme.colors.background }]}>
+      <ScrollView style={gStyles.screenPadding}>
+        <Text style={gStyles.title}>Profile</Text>
         
         <View style={styles.inputContainer}>
           <TextInput

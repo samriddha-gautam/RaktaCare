@@ -1,6 +1,7 @@
 import { Tabs } from "expo-router";
 import React from "react";
 import { useTheme } from "@/contexts/ThemeContext";
+import AntDesign from '@expo/vector-icons/AntDesign';
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -21,7 +22,11 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Home",
+          tabBarIcon : ({color, focused})=>(
+            <AntDesign name="home" size={24} color={color} />
+          )
         }}
+        
       />
       <Tabs.Screen
         name="add"
@@ -30,9 +35,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="settings"
         options={{
-          title: "Profile",
+          title: "More",
+          tabBarIcon:({color,focused})=>(
+            <AntDesign name="appstore-o" size={24} color={color}/>
+          )
         }}
       />
     </Tabs>

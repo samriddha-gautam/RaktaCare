@@ -86,6 +86,7 @@ const HomePage: React.FC = () => {
         <HorizontalScroll />
         <Cards />
       </ScrollView>
+      
     </SafeAreaView>
   );
 };

@@ -26,7 +26,7 @@ const HorizontalScroll = () => {
   return (
     <View style={styles.section}>
       <Text style={[styles.sectionTitle,gstyles.text]}>Blood Groups</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView horizontal>
         {categories.map((category) => (
           <TouchableOpacity
             onPress={()=>console.log(category.name + " Blood group")}

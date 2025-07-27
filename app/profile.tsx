@@ -1,4 +1,4 @@
-import ThemeToggle from "@/components/ThemeToggle";
+import ThemeToggle from "@/components/common/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import React from "react";
@@ -14,12 +14,14 @@ import {
 const profile = () => {
   const { theme } = useTheme();
   const gStyles = createGlobalStyles(theme);
-  
+
   return (
-    <SafeAreaView style={[gStyles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[gStyles.container, { backgroundColor: theme.colors.background }]}
+    >
       <ScrollView style={gStyles.screenPadding}>
         <Text style={gStyles.title}>Profile</Text>
-        
+
         <View style={styles.inputContainer}>
           <TextInput
             style={[
@@ -28,14 +30,14 @@ const profile = () => {
                 borderColor: theme.colors.border,
                 backgroundColor: theme.colors.surface,
                 color: theme.colors.text,
-              }
+              },
             ]}
             placeholder="Username"
             placeholderTextColor={theme.colors.textSecondary}
             keyboardType="email-address"
           />
         </View>
-        
+
         <ThemeToggle />
       </ScrollView>
     </SafeAreaView>

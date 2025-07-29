@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx
 import Cards from "@/components/ui/Cards";
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
-import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
+import Header, {DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import React, { useRef, useCallback } from "react";

@@ -1,4 +1,4 @@
-// app/(tabs)/index.tsx
+
 import Cards from "@/components/ui/Cards";
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
 import Header, {DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";

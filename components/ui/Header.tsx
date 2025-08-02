@@ -11,7 +11,7 @@ import {
   Image,
 } from "react-native";
 
-export const DEFAULT_HEADER_HEIGHT = 130;
+export const DEFAULT_HEADER_HEIGHT = 150;
 
 interface HeaderProps {
   headerHeight?: number;
@@ -36,7 +36,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(({
   hideThreshold = 15,
   showThreshold = 10,
   animationDuration = 200,
-  minScrollY = 50,
+  minScrollY = 20,
   userName = "UserName",
   userImageUri = "https://via.placeholder.com/55x55/007AFF/FFFFFF?text=U",
   onProfilePress,

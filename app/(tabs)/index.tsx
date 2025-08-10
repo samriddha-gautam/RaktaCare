@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
-import Button from "@/components/common/Button";
+
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();

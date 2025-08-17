@@ -5,5 +5,10 @@ import {onCall} from "firebase-functions/v2/https";
 import {setGlobalOptions} from "firebase-functions";
 import {onRequest} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
+import {getFunctions} from "firebase/functions";
+
+const functions = getFunctions();
+
+
 
 

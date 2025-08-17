@@ -21,6 +21,7 @@ export const functions = getFunctions(app);
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage)
 });
+
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 

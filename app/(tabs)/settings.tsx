@@ -14,7 +14,6 @@ const settings: React.FC = () => {
       <Button
         title="Click Me"
         onPress={() => console.log("Button Pressed in settings")}
-        style={{alignSelf:"center"}}
       />
     </SafeAreaView>
   );

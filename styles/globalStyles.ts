@@ -65,15 +65,12 @@ export const darkTheme: Theme = {
 export const createGlobalStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 15,
+    // alignItems:'center',
+    paddingTop:theme.spacing.xl,
     backgroundColor: theme.colors.background,
   },
   surface: {
     backgroundColor: theme.colors.surface,
-  },
-  screenPadding: {
-    paddingTop: theme.spacing.md,
-    marginTop:theme.spacing.xl
   },
   text: {
     fontSize: 20,

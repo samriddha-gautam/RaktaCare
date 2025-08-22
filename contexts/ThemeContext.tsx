@@ -1,4 +1,4 @@
-// contexts/ThemeContext.tsx
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { lightTheme, darkTheme, Theme } from '../styles/globalStyles';
@@ -16,8 +16,8 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const systemColorScheme = useColorScheme(); // Auto-detect system theme
-  const [isDark, setIsDark] = useState(systemColorScheme === 'dark');
+  const systemColorScheme = useColorScheme(); 
+  const [isDark, setIsDark] = useState(systemColorScheme === 'light');
   
   const theme = isDark ? darkTheme : lightTheme;
   

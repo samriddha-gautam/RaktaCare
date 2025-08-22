@@ -1,26 +1,22 @@
-import Cards from "@/components/Cards";
-import HorizontalScroll from "@/components/HorizontalScroll";
-import ThemeToggle from "@/components/ThemeToggle";
+import Button from "@/components/common/Button";
+import ThemeToggle from "@/components/common/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import React from "react";
-import { ScrollView, StyleSheet, SafeAreaView } from "react-native";
+import { SafeAreaView, StyleSheet } from "react-native";
 
 const settings: React.FC = () => {
   const { theme } = useTheme();
   const styles = createGlobalStyles(theme);
   return (
-    <SafeAreaView style={styles.container}>
-      <ThemeToggle/>
+    <SafeAreaView style={[styles.container,{alignItems:'flex-start'}]}>
+      <ThemeToggle />
+      <Button
+        title="Click Me"
+        onPress={() => console.log("Button Pressed in settings")}
+      />
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-  },
-});
 
 export default settings;

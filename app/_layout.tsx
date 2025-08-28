@@ -1,6 +1,7 @@
+import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Stack } from "expo-router";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   return (

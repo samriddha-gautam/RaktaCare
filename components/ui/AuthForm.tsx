@@ -1,21 +1,22 @@
+import * as ImagePicker from 'expo-image-picker';
+import React, { useState } from "react";
 import {
-  Button,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  TouchableOpacity,
   Alert,
+  Image, // Add this line
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
-  onSignup: (email: string, password: string, name: string) => Promise<void>;
+  onSignup: (email: string, password: string, name: string, photoUri?: string) => Promise<void>; // Add photoUri parameter
   loading?: boolean;
   accentColor?: string;
   backgroundColor?: string;
@@ -32,6 +33,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   const dynamicStyles = StyleSheet.create({
     accentButton: { backgroundColor: accentColor },
@@ -69,25 +71,99 @@ const AuthForm: React.FC<AuthFormProps> = ({
     }
   };
 
-  const handleSignup = async () => {
-    if (!validateInputs()) return;
-    try {
-      await onSignup(email.trim(), password, name.trim());
-    } catch (error) {
-      console.error("Signup error:", error);
-    }
-  };
+/*
+Handles user signup process
+Validates form inputs, then calls the parent component's onSignup function
+with user data including optional profile photo
 
-  const clearForm = () => {
-    setEmail("");
-    setPassword("");
-    setName("");
-  };
+@async
+@function handleSignup
+@returns {Promise<void>}
+
+Flow:
+1. Validates all required inputs (email, password, name)
+2. Calls parent's onSignup with: email, password, name, and optional photoUri
+3. Parent component handles actual Firebase auth + photo upload
+4. Errors are logged and should be handled by parent component
+*/
+const handleSignup = async () => {
+  if (!validateInputs()) return;
+  try {
+    await onSignup(email.trim(), password, name.trim(), photoUri || undefined);
+  } catch (error) {
+    console.error("Signup error:", error);
+  }
+};
+
+const clearForm = () => {
+  setEmail("");
+  setPassword("");
+  setName("");
+  setPhotoUri(null);
+}
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     clearForm();
   };
+
+  // Add these photo-related functions
+  const requestPermissions = async () => {
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to upload photos.');
+    return false;
+  }
+  return true;
+};
+
+const selectPhoto = async () => {
+  const hasPermission = await requestPermissions();
+  if (!hasPermission) return;
+
+  Alert.alert(
+    "Select Photo",
+    "Choose how you'd like to add your profile photo",
+    [
+      { text: "Camera", onPress: openCamera },
+      { text: "Photo Library", onPress: openImageLibrary },
+      { text: "Cancel", style: "cancel" },
+    ]
+  );
+};
+
+const openCamera = async () => {
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== 'granted') {
+    Alert.alert('Permission Required', 'Sorry, we need camera permissions.');
+    return;
+  }
+
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.8,
+  });
+
+  if (!result.canceled && result.assets[0]) {
+    setPhotoUri(result.assets[0].uri);
+  }
+};
+
+const openImageLibrary = async () => {
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: ImagePicker.MediaTypeOptions.Images,
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 0.8,
+  });
+
+  if (!result.canceled && result.assets[0]) {
+    setPhotoUri(result.assets[0].uri);
+  }
+};
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,6 +186,41 @@ const AuthForm: React.FC<AuthFormProps> = ({
 
             {/* Form */}
             <View style={styles.form}>
+                  {/* Photo Upload (only for signup) */}
+  {!isLoginMode && (
+    <View style={styles.photoSection}>
+      <Text style={styles.inputLabel}>Profile Photo (Optional)</Text>
+      
+      {photoUri ? (
+        <View style={styles.photoContainer}>
+          <Image source={{ uri: photoUri }} style={styles.profilePhoto} />
+          <TouchableOpacity
+            onPress={() => setPhotoUri(null)}
+            style={styles.removePhotoButton}
+          >
+            <Text style={styles.removePhotoText}>×</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          onPress={selectPhoto}
+          style={[styles.photoPlaceholder, dynamicStyles.inputFocused]}
+          disabled={loading}
+        >
+          <Text style={styles.photoPlaceholderText}>📷</Text>
+          <Text style={styles.photoPlaceholderSubtext}>Add Photo</Text>
+        </TouchableOpacity>
+      )}
+      
+      {photoUri && (
+        <TouchableOpacity onPress={selectPhoto} disabled={loading}>
+          <Text style={[styles.changePhotoText, dynamicStyles.accentText]}>
+            Change Photo
+          </Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  )}
               {/* Name Input (only for signup) */}
               {!isLoginMode && (
                 <View style={styles.inputContainer}>
@@ -281,6 +392,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+
+  photoSection: {
+  marginBottom: 20,
+  alignItems: 'center',
+},
+photoContainer: {
+  position: 'relative',
+  marginBottom: 8,
+},
+profilePhoto: {
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  borderWidth: 3,
+  borderColor: '#E5E7EB',
+},
+removePhotoButton: {
+  position: 'absolute',
+  top: -5,
+  right: -5,
+  backgroundColor: '#DC2626',
+  width: 25,
+  height: 25,
+  borderRadius: 12.5,
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+removePhotoText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
+photoPlaceholder: {
+  width: 100,
+  height: 100,
+  borderRadius: 50,
+  borderWidth: 2,
+  borderStyle: 'dashed',
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#F9FAFB',
+  marginBottom: 8,
+},
+photoPlaceholderText: {
+  fontSize: 24,
+  marginBottom: 4,
+},
+photoPlaceholderSubtext: {
+  fontSize: 12,
+  color: '#6B7280',
+},
+changePhotoText: {
+  fontSize: 14,
+  fontWeight: '500',
+  textAlign: 'center',
+},
 });
 
 export default AuthForm;

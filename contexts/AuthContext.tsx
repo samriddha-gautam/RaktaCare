@@ -91,35 +91,34 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   const loadPersistedData = async () => {
     try {
       setIsLoading(true);
-
-      const authStatus = await AsyncStorage.getItem(
-        STORAGE_KEYS.IS_AUTHENTICATED
-      );
+      const [authStatus, storedUser, storedProfile] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED),
+        AsyncStorage.getItem(STORAGE_KEYS.USER),
+        AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA),
+      ]);
       const wasAuthenticated = authStatus === "true";
-
-      const storedUser = await AsyncStorage.getItem(STORAGE_KEYS.USER);
       let persistedUser = null;
+      let persistedProfile = null;
       if (storedUser) {
         persistedUser = JSON.parse(storedUser);
       }
-
-      const storedProfile = await AsyncStorage.getItem(
-        STORAGE_KEYS.PROFILE_DATA
-      );
-      let persistedProfile = null;
       if (storedProfile) {
         persistedProfile = JSON.parse(storedProfile);
         setProfileDataState(persistedProfile);
       }
-
       if (wasAuthenticated && persistedUser) {
         setIsAuthenticated(true);
-        console.log("Restored authentication state from storage");
+        console.log(
+          "✅ Restored authentication state from storage - User should stay logged in"
+        );
+      } else {
+        setIsAuthenticated(false);
+        console.log("❌ No valid authentication found in storage");
       }
-
       return { wasAuthenticated, persistedUser, persistedProfile };
     } catch (error) {
       console.error("Error loading persisted data:", error);
+      setIsAuthenticated(false);
       return {
         wasAuthenticated: false,
         persistedUser: null,
@@ -129,7 +128,6 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
       setIsLoading(false);
     }
   };
-
   const clearAllData = async () => {
     try {
       await AsyncStorage.multiRemove([
@@ -159,35 +157,48 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log(
-        "Firebase auth state changed:",
+        "🔥 Firebase auth state changed:",
         firebaseUser?.email || "No user"
       );
 
       setUser(firebaseUser);
 
       if (firebaseUser) {
+        console.log("✅ Firebase confirms user is authenticated");
         setIsAuthenticated(true);
         await persistUserData(firebaseUser);
 
         if (!profileData) {
-          const autoProfileData: ProfileData = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email || "",
-            name: firebaseUser.displayName || "",
-            displayName: firebaseUser.displayName || "",
-          };
-          await setProfileData(autoProfileData);
+          const storedProfile = await AsyncStorage.getItem(
+            STORAGE_KEYS.PROFILE_DATA
+          );
+          if (!storedProfile) {
+            console.log("📝 Creating auto profile data from Firebase user");
+            const autoProfileData: ProfileData = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email || "",
+              name: firebaseUser.displayName || "",
+              displayName: firebaseUser.displayName || "",
+            };
+            await setProfileData(autoProfileData);
+          }
         }
       } else {
-        setIsAuthenticated(false);
-        await persistUserData(null);
+        console.log("❌ Firebase says no user authenticated");
+        if (!isLoading) {
+          console.log("🔄 Clearing authentication state");
+          setIsAuthenticated(false);
+          await persistUserData(null);
+        }
       }
 
-      setIsLoading(false);
+      if (isLoading) {
+        setIsLoading(false);
+      }
     });
 
     return unsubscribe;
-  }, [profileData]);
+  }, []);
 
   const contextValue: AuthContextType = {
     user,

@@ -1,5 +1,4 @@
 import {
-  Button,
   StyleSheet,
   Text,
   TextInput,
@@ -91,9 +90,18 @@ const AuthForm: React.FC<AuthFormProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          overScrollMode="never"
         >
           <View style={styles.content}>
             {/* Header */}
@@ -190,24 +198,37 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 </TouchableOpacity>
               </View>
             </View>
+
+            {/* Extra padding to ensure content is scrollable above keyboard */}
+            <View style={styles.bottomSpacer} />
           </View>
-        </KeyboardAvoidingView>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+export default AuthForm
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  // keyboardView: {
-  //   flex: 1,
-  // },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 50, // Extra padding at bottom
+  },
   content: {
     flex: 1,
     padding: 20,
+    minHeight: '100%', // Ensures content takes at least full height
   },
   header: {
     padding: 24,
@@ -281,6 +302,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  bottomSpacer: {
+    height: 100,
+  },
 });
-
-export default AuthForm;

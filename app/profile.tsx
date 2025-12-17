@@ -1,117 +1,148 @@
-import { Button, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import React, { useEffect, useState } from "react";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-} from "firebase/auth";
-import { auth, db } from "@/services/firebase/config";
-import { setDoc, doc, getDoc } from "firebase/firestore";
+  StyleSheet,
+  Text,
+  View,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
+import React from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuthActions } from "@/hooks/useAuthActions";
+import ProfileView from "@/components/ui/ProfileView";
+import AuthForm from "@/components/ui/AuthForm";
 
-const profile = () => {
-  const { user } = useAuth();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
-  const [profileData, setProfileData] = useState<any>(null);
 
-  //SIGN_IN code
-  const signup = async () => {
-    try {
-      const userCredentials = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      await setDoc(doc(db, "users", userCredentials.user.uid), { name, email });
-      alert("Account Created");
-    } catch (error: any) {
-      alert(error.message);
+const Profile = () => {
+  const {
+    user,
+    profileData,
+    isAuthenticated,
+    isLoading,
+    setProfileData,
+    refreshUserData,
+  } = useAuth();
+
+
+  const { signUp, login, logout, loading: authLoading } = useAuthActions();
+
+  const handleLogin = async (email: string, password: string) => {
+    const result = await login(email, password);
+    if (!result.success && result.error) {
+      console.error("Login failed:", result.error);
     }
   };
-
-  const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      alert("Logged In");
-    } catch (error: any) {
-      alert(error.message);
+  const handleSignUp = async (
+    email: string,
+    password: string,
+    name: string
+  ) => {
+    const result = await signUp(email, password, name);
+    if (!result.success && result.error) {
+      console.error("Signup failed:", result.error);
     }
   };
-
-  const logout = async () => {
-    try {
-      await signOut(auth);
-      alert("logged out");
-    } catch (error: any) {
-      alert(error.message);
+  const handleLogout = async () => {
+    const result = await logout();
+    if (!result.success && result.error) {
+      console.error("Logout failed:", result.error);
     }
   };
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#DC2626" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
 
-  const getProfileFromDatabase = async () => {
-    if (!user) return;
-    try {
-      const docSnapShot = await getDoc(doc(db, "users", user.uid));
-      if (docSnapShot.exists()) {
-        setProfileData(docSnapShot.data);
-      } else {
-        alert("Profile Data Not found");
-      }
-    } catch (error: any) {
-      alert(error.message);
-    }
-  };
   return (
-    <SafeAreaView>
-      <View>
-        {user ? (
-          <>
-            <Text>Hello user</Text>
-            <Button onPress={getProfileFromDatabase} title="Load Your Profile"/>
-            {profileData && (
-              <View>
-                <Text>Email: {profileData.email}</Text>
-              </View>
-            )}
-            <Button title="Logout" onPress={logout} />
-          </>
-        ) : (
-          <>
-          <TextInput
-              value={name}
-              onChangeText={setName}
-              style={{
-                backgroundColor:"#8d4b4bff"
-              }}
-              placeholder="Input Name"
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>
+            {isAuthenticated ? "Profile" : "Welcome"}
+          </Text>
+          {isAuthenticated && <View style={styles.headerAccent} />}
+        </View>
+
+        <View style={styles.content}>
+          {isAuthenticated ? (
+            <ProfileView
+              user={user}
+              profileData={profileData}
+              onUpdateProfile={setProfileData}
+              onRefresh={refreshUserData}
+              onLogout={handleLogout}
+              loading={authLoading}
+              accentColor="#DC2626"
+              backgroundColor="#FEF2F2"
             />
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              style={{
-                backgroundColor:"#8d4b4bff"
-              }}
-              placeholder="Input Email"
+          ) : (
+            <AuthForm
+              onLogin={handleLogin}
+              onSignup={handleSignUp}
+              loading={authLoading}
+              accentColor="#DC2626"
+              backgroundColor="#FEF2F2"
             />
-            <TextInput
-              value={password}
-              onChangeText={setPassword}
-              style={{
-                backgroundColor:"#8d4b4bff"
-              }}
-              placeholder="Input Password"
-            />
-            <Button onPress={login} title="login"/>
-            <Button onPress={signup} title="signup"></Button>
-          </>
-        )}
-      </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
-export default profile;
+export default Profile;
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#6B7280",
+  },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  container: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "#FAFAFA",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    position: "relative",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1F2937",
+    textAlign: "center",
+  },
+  headerAccent: {
+    position: "absolute",
+    bottom: 0,
+    left: "50%",
+    marginLeft: -20,
+    width: 40,
+    height: 3,
+    backgroundColor: "#DC2626",
+    borderRadius: 2,
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: "#FFFFFF",
+  },
+});

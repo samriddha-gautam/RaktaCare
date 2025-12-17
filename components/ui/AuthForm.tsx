@@ -1,20 +1,22 @@
+import * as ImagePicker from 'expo-image-picker';
+import React, { useState } from "react";
 import {
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  TouchableOpacity,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
-  onSignup: (email: string, password: string, name: string) => Promise<void>;
+  onSignup: (email: string, password: string, name: string, photoUri?: string) => Promise<void>;
   loading?: boolean;
   accentColor?: string;
   backgroundColor?: string;
@@ -31,6 +33,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
+  // const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   const dynamicStyles = StyleSheet.create({
     accentButton: { backgroundColor: accentColor },
@@ -104,7 +107,6 @@ const AuthForm: React.FC<AuthFormProps> = ({
           overScrollMode="never"
         >
           <View style={styles.content}>
-            {/* Header */}
             <View style={[styles.header, dynamicStyles.lightBackground]}>
               <Text style={[styles.headerTitle, dynamicStyles.accentText]}>
                 {isLoginMode ? "Welcome Back!" : "Create Account"}
@@ -116,9 +118,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
               </Text>
             </View>
 
-            {/* Form */}
             <View style={styles.form}>
-              {/* Name Input (only for signup) */}
               {!isLoginMode && (
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Full Name</Text>
@@ -133,7 +133,6 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 </View>
               )}
 
-              {/* Email Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Email Address</Text>
                 <TextInput
@@ -148,7 +147,6 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 />
               </View>
 
-              {/* Password Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Password</Text>
                 <TextInput
@@ -167,7 +165,6 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 )}
               </View>
 
-              {/* Primary Action Button */}
               <TouchableOpacity
                 onPress={isLoginMode ? handleLogin : handleSignup}
                 style={[styles.primaryButton, dynamicStyles.accentButton]}
@@ -184,7 +181,6 @@ const AuthForm: React.FC<AuthFormProps> = ({
                 </Text>
               </TouchableOpacity>
 
-              {/* Mode Toggle */}
               <View style={styles.toggleContainer}>
                 <Text style={styles.toggleText}>
                   {isLoginMode
@@ -199,7 +195,6 @@ const AuthForm: React.FC<AuthFormProps> = ({
               </View>
             </View>
 
-            {/* Extra padding to ensure content is scrollable above keyboard */}
             <View style={styles.bottomSpacer} />
           </View>
         </ScrollView>
@@ -208,7 +203,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
   );
 };
 
-export default AuthForm
+export default AuthForm;
 
 const styles = StyleSheet.create({
   container: {
@@ -223,12 +218,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 50, // Extra padding at bottom
+    paddingBottom: 50,
   },
   content: {
     flex: 1,
     padding: 20,
-    minHeight: '100%', // Ensures content takes at least full height
+    minHeight: '100%',
   },
   header: {
     padding: 24,
@@ -248,6 +243,58 @@ const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
+  },
+  photoSection: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  photoContainer: {
+    position: 'relative',
+    marginVertical: 10,
+  },
+  profilePhoto: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#DC2626',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePhotoText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  photoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  photoPlaceholderText: {
+    fontSize: 30,
+  },
+  photoPlaceholderSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  changePhotoText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 5,
   },
   inputContainer: {
     marginBottom: 20,
@@ -303,6 +350,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   bottomSpacer: {
-    height: 100,
+    height: 50,
   },
 });

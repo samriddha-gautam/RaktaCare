@@ -26,7 +26,7 @@
     "expo-image": "~3.0.11",
     "expo-image-picker": "~17.0.10",
     "expo-linking": "~8.0.10",
-    "expo-router": "~6.0.19",
+    "expo-router": "~6.0.20",
     "expo-splash-screen": "~31.0.12",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",

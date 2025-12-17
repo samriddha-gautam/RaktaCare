@@ -130,12 +130,16 @@ export const useAuthActions = () => {
   }) => {
     setLoading(true);
     try {
+      console.log("=== UPDATE PROFILE START ===");
+      console.log("Received updates:", updates); // ← ADD THIS
+
       if (!auth.currentUser) {
         throw new Error("No user is currently logged in");
       }
 
-      const authUpdates: { displayName?: string; phone?: string } = {};
+      const authUpdates: { displayName?: string; photoURL?: string, phone?: string } = {};
       if (updates.displayName) authUpdates.displayName = updates.displayName;
+      if (updates.photoURL) authUpdates.photoURL = updates.photoURL;
       if (updates.phone) authUpdates.phone = updates.phone;
 
       if (Object.keys(authUpdates).length > 0) {
@@ -143,8 +147,12 @@ export const useAuthActions = () => {
       }
 
       const currentProfileData = await getStoredProfileData();
+      console.log("Current profile data from storage:", currentProfileData); // ← ADD THIS
+
       const updatedProfileData = {
         ...currentProfileData,
+        id: auth.currentUser.uid, // ← ADD THIS (important!)
+        email: auth.currentUser.email || currentProfileData?.email, // ← ADD THIS
         name: updates.displayName || currentProfileData?.name || "",
         displayName:
           updates.displayName || currentProfileData?.displayName || "",
@@ -155,15 +163,19 @@ export const useAuthActions = () => {
         updatedAt: new Date().toISOString(),
       };
 
+      console.log("Data being saved to Firestore:", updatedProfileData); // ← ADD THIS
+
       if (auth.currentUser.uid) {
         await setDoc(
           doc(db, "users", auth.currentUser.uid),
           updatedProfileData,
           { merge: true }
         );
+        console.log("✅ Firestore update complete"); // ← ADD THIS
       }
 
       await setProfileData(updatedProfileData);
+      console.log("✅ Local state updated"); // ← ADD THIS
 
       console.log("Profile updated successfully");
       return { success: true };
@@ -177,7 +189,6 @@ export const useAuthActions = () => {
       setLoading(false);
     }
   };
-
   return {
     signUp,
     login,

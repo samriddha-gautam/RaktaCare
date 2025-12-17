@@ -13,7 +13,7 @@ import { createGlobalStyles } from "@/styles/globalStyles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
-import { useBloodRequest } from "@/hooks/useBloodRequest";
+import { useBloodRequest } from "@/hooks/useCreateBloodRequest";
 
 const Add = () => {
   const { theme } = useTheme();
@@ -47,12 +47,10 @@ const Add = () => {
           {
             text: "OK",
             onPress: () => {
-              // Reset form
               setSelectedBloodType("");
               setDescription("");
               setLocation("");
               setContactPhone(getDefaultPhone());
-              // Navigate back or to home
               router.back();
             },
           },

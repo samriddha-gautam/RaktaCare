@@ -134,9 +134,9 @@ export const useAuthActions = () => {
         throw new Error("No user is currently logged in");
       }
 
-      const authUpdates: { displayName?: string; photoURL?: string } = {};
+      const authUpdates: { displayName?: string; phone?: string } = {};
       if (updates.displayName) authUpdates.displayName = updates.displayName;
-      if (updates.photoURL) authUpdates.photoURL = updates.photoURL;
+      if (updates.phone) authUpdates.phone = updates.phone;
 
       if (Object.keys(authUpdates).length > 0) {
         await updateProfile(auth.currentUser, authUpdates);

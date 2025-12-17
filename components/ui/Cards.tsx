@@ -6,13 +6,17 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import React from "react";
+import React, { useMemo } from "react";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBloodRequests } from "@/hooks/useBloodRequests";
 
-const Cards = () => {
+interface CardsProps {
+  filterBloodType?: string;
+}
+
+const Cards = ({ filterBloodType = "" }: CardsProps) => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
   const { user } = useAuth();
@@ -23,6 +27,24 @@ const Cards = () => {
     error,
     toggleRequestStatus,
   } = useBloodRequests();
+
+  const filteredRequests = useMemo(() => {
+    if (!filterBloodType) {
+      return displayRequests;
+    }
+    return displayRequests.filter(
+      (request) => request.bloodType === filterBloodType
+    );
+  }, [displayRequests, filterBloodType]);
+
+  const filteredActiveCount = useMemo(() => {
+    if (!filterBloodType) {
+      return activeRequests.length;
+    }
+    return activeRequests.filter(
+      (request) => request.bloodType === filterBloodType
+    ).length;
+  }, [activeRequests, filterBloodType]);
 
   const handleToggleStatus = async (
     requestId: string,
@@ -90,16 +112,16 @@ const Cards = () => {
     );
   }
 
-  if (displayRequests.length === 0) {
+  if (filteredRequests.length === 0) {
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, gstyles.text]}>Recent Requests</Text>
         <View style={styles.emptyContainer}>
           <Text style={[gstyles.text, styles.emptyText]}>
-            No blood requests available
-          </Text>
-          <Text style={[gstyles.textSecondary, styles.emptySubtext]}>
-            Be the first to create a request!
+            {filterBloodType 
+              ? `No "${filterBloodType}" requests available right now`
+              : "No blood requests available"
+            }
           </Text>
         </View>
       </View>
@@ -109,13 +131,15 @@ const Cards = () => {
   return (
     <View style={styles.section}>
       <View style={styles.headerContainer}>
-        <Text style={[styles.sectionTitle, gstyles.text]}>Recent Requests</Text>
+        <Text style={[styles.sectionTitle, gstyles.text]}>
+          {filterBloodType ? `${filterBloodType} Requests` : "Recent Requests"}
+        </Text>
         <Text style={[gstyles.textSecondary, styles.requestCount]}>
-          {activeRequests.length} active
+          {filteredActiveCount} active
         </Text>
       </View>
 
-      {displayRequests.map((request) => (
+      {filteredRequests.map((request) => (
         <TouchableOpacity
           key={request.id}
           style={[

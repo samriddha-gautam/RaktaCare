@@ -1,25 +1,26 @@
+import HorizontalScroll from "@/components/ui/HorizontalScroll";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useBloodRequest } from "@/hooks/useCreateBloodRequest";
+import { createGlobalStyles } from "@/styles/globalStyles";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
   StyleSheet,
   Text,
-  View,
   TextInput,
   TouchableOpacity,
-  ScrollView,
-  Alert,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import React, { useState, useEffect } from "react";
-import { createGlobalStyles } from "@/styles/globalStyles";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useRouter } from "expo-router";
-import HorizontalScroll from "@/components/ui/HorizontalScroll";
-import { useBloodRequest } from "@/hooks/useCreateBloodRequest";
 
 const Add = () => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
   const router = useRouter();
-  const { createBloodRequest, isSubmitting, getDefaultPhone } = useBloodRequest();
+  const { createBloodRequest, isSubmitting, getDefaultPhone } =
+    useBloodRequest();
 
   const [selectedBloodType, setSelectedBloodType] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -67,18 +68,18 @@ const Add = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[gstyles.title, styles.title]}>
-          Create Blood Request
-        </Text>
+        <Text style={[gstyles.title, styles.title]}>Create Blood Request</Text>
         <Text style={[gstyles.textSecondary, styles.subtitle]}>
           Fill in the details to request blood donation
         </Text>
 
         {/* Blood Type Selection */}
-        <View style={styles.bloodTypeSection}>
+        <View style={styles.section}>
           <Text style={[gstyles.text, styles.label]}>
             Blood Type <Text style={styles.required}>*</Text>
           </Text>
+        </View>
+        <View style={styles.bloodTypeSection}>
           <HorizontalScroll
             selectedBloodType={selectedBloodType}
             onSelectBloodType={setSelectedBloodType}

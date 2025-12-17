@@ -12,6 +12,7 @@ import { useAuthActions } from "@/hooks/useAuthActions";
 import ProfileView from "@/components/ui/ProfileView";
 import AuthForm from "@/components/ui/AuthForm";
 
+
 const Profile = () => {
   const {
     user,
@@ -22,6 +23,7 @@ const Profile = () => {
     refreshUserData,
   } = useAuth();
 
+
   const { signUp, login, logout, loading: authLoading } = useAuthActions();
 
   const handleLogin = async (email: string, password: string) => {
@@ -30,7 +32,6 @@ const Profile = () => {
       console.error("Login failed:", result.error);
     }
   };
-
   const handleSignUp = async (
     email: string,
     password: string,
@@ -41,14 +42,12 @@ const Profile = () => {
       console.error("Signup failed:", result.error);
     }
   };
-
   const handleLogout = async () => {
     const result = await logout();
     if (!result.success && result.error) {
       console.error("Logout failed:", result.error);
     }
   };
-
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>

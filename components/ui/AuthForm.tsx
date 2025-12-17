@@ -2,7 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useState } from "react";
 import {
   Alert,
-  Image, // Add this line
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -16,7 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
-  onSignup: (email: string, password: string, name: string, photoUri?: string) => Promise<void>; // Add photoUri parameter
+  onSignup: (email: string, password: string, name: string, photoUri?: string) => Promise<void>;
   loading?: boolean;
   accentColor?: string;
   backgroundColor?: string;
@@ -71,108 +71,99 @@ const AuthForm: React.FC<AuthFormProps> = ({
     }
   };
 
-/*
-Handles user signup process
-Validates form inputs, then calls the parent component's onSignup function
-with user data including optional profile photo
+  const handleSignup = async () => {
+    if (!validateInputs()) return;
+    try {
+      await onSignup(email.trim(), password, name.trim(), photoUri || undefined);
+    } catch (error) {
+      console.error("Signup error:", error);
+    }
+  };
 
-@async
-@function handleSignup
-@returns {Promise<void>}
-
-Flow:
-1. Validates all required inputs (email, password, name)
-2. Calls parent's onSignup with: email, password, name, and optional photoUri
-3. Parent component handles actual Firebase auth + photo upload
-4. Errors are logged and should be handled by parent component
-*/
-const handleSignup = async () => {
-  if (!validateInputs()) return;
-  try {
-    await onSignup(email.trim(), password, name.trim(), photoUri || undefined);
-  } catch (error) {
-    console.error("Signup error:", error);
-  }
-};
-
-const clearForm = () => {
-  setEmail("");
-  setPassword("");
-  setName("");
-  setPhotoUri(null);
-}
+  const clearForm = () => {
+    setEmail("");
+    setPassword("");
+    setName("");
+    setPhotoUri(null);
+  };
 
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     clearForm();
   };
 
-  // Add these photo-related functions
   const requestPermissions = async () => {
-  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to upload photos.');
-    return false;
-  }
-  return true;
-};
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Sorry, we need camera roll permissions to upload photos.');
+      return false;
+    }
+    return true;
+  };
 
-const selectPhoto = async () => {
-  const hasPermission = await requestPermissions();
-  if (!hasPermission) return;
+  const selectPhoto = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
 
-  Alert.alert(
-    "Select Photo",
-    "Choose how you'd like to add your profile photo",
-    [
-      { text: "Camera", onPress: openCamera },
-      { text: "Photo Library", onPress: openImageLibrary },
-      { text: "Cancel", style: "cancel" },
-    ]
-  );
-};
+    Alert.alert(
+      "Select Photo",
+      "Choose how you'd like to add your profile photo",
+      [
+        { text: "Camera", onPress: openCamera },
+        { text: "Photo Library", onPress: openImageLibrary },
+        { text: "Cancel", style: "cancel" },
+      ]
+    );
+  };
 
-const openCamera = async () => {
-  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  if (status !== 'granted') {
-    Alert.alert('Permission Required', 'Sorry, we need camera permissions.');
-    return;
-  }
+  const openCamera = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Sorry, we need camera permissions.');
+      return;
+    }
 
-  const result = await ImagePicker.launchCameraAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.8,
-  });
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
 
-  if (!result.canceled && result.assets[0]) {
-    setPhotoUri(result.assets[0].uri);
-  }
-};
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
-const openImageLibrary = async () => {
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    allowsEditing: true,
-    aspect: [1, 1],
-    quality: 0.8,
-  });
+  const openImageLibrary = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
 
-  if (!result.canceled && result.assets[0]) {
-    setPhotoUri(result.assets[0].uri);
-  }
-};
-
+    if (!result.canceled && result.assets[0]) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"} 
+        style={styles.keyboardView}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
+      >
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+          overScrollMode="never"
         >
           <View style={styles.content}>
-            {/* Header */}
             <View style={[styles.header, dynamicStyles.lightBackground]}>
               <Text style={[styles.headerTitle, dynamicStyles.accentText]}>
                 {isLoginMode ? "Welcome Back!" : "Create Account"}
@@ -184,44 +175,42 @@ const openImageLibrary = async () => {
               </Text>
             </View>
 
-            {/* Form */}
             <View style={styles.form}>
-                  {/* Photo Upload (only for signup) */}
-  {!isLoginMode && (
-    <View style={styles.photoSection}>
-      <Text style={styles.inputLabel}>Profile Photo (Optional)</Text>
-      
-      {photoUri ? (
-        <View style={styles.photoContainer}>
-          <Image source={{ uri: photoUri }} style={styles.profilePhoto} />
-          <TouchableOpacity
-            onPress={() => setPhotoUri(null)}
-            style={styles.removePhotoButton}
-          >
-            <Text style={styles.removePhotoText}>×</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <TouchableOpacity
-          onPress={selectPhoto}
-          style={[styles.photoPlaceholder, dynamicStyles.inputFocused]}
-          disabled={loading}
-        >
-          <Text style={styles.photoPlaceholderText}>📷</Text>
-          <Text style={styles.photoPlaceholderSubtext}>Add Photo</Text>
-        </TouchableOpacity>
-      )}
-      
-      {photoUri && (
-        <TouchableOpacity onPress={selectPhoto} disabled={loading}>
-          <Text style={[styles.changePhotoText, dynamicStyles.accentText]}>
-            Change Photo
-          </Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  )}
-              {/* Name Input (only for signup) */}
+              {!isLoginMode && (
+                <View style={styles.photoSection}>
+                  <Text style={styles.inputLabel}>Profile Photo (Optional)</Text>
+                  
+                  {photoUri ? (
+                    <View style={styles.photoContainer}>
+                      <Image source={{ uri: photoUri }} style={styles.profilePhoto} />
+                      <TouchableOpacity
+                        onPress={() => setPhotoUri(null)}
+                        style={styles.removePhotoButton}
+                      >
+                        <Text style={styles.removePhotoText}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={selectPhoto}
+                      style={[styles.photoPlaceholder, dynamicStyles.inputFocused]}
+                      disabled={loading}
+                    >
+                      <Text style={styles.photoPlaceholderText}>📷</Text>
+                      <Text style={styles.photoPlaceholderSubtext}>Add Photo</Text>
+                    </TouchableOpacity>
+                  )}
+                  
+                  {photoUri && (
+                    <TouchableOpacity onPress={selectPhoto} disabled={loading}>
+                      <Text style={[styles.changePhotoText, dynamicStyles.accentText]}>
+                        Change Photo
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+
               {!isLoginMode && (
                 <View style={styles.inputContainer}>
                   <Text style={styles.inputLabel}>Full Name</Text>
@@ -236,7 +225,6 @@ const openImageLibrary = async () => {
                 </View>
               )}
 
-              {/* Email Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Email Address</Text>
                 <TextInput
@@ -251,7 +239,6 @@ const openImageLibrary = async () => {
                 />
               </View>
 
-              {/* Password Input */}
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Password</Text>
                 <TextInput
@@ -270,7 +257,6 @@ const openImageLibrary = async () => {
                 )}
               </View>
 
-              {/* Primary Action Button */}
               <TouchableOpacity
                 onPress={isLoginMode ? handleLogin : handleSignup}
                 style={[styles.primaryButton, dynamicStyles.accentButton]}
@@ -287,7 +273,6 @@ const openImageLibrary = async () => {
                 </Text>
               </TouchableOpacity>
 
-              {/* Mode Toggle */}
               <View style={styles.toggleContainer}>
                 <Text style={styles.toggleText}>
                   {isLoginMode
@@ -301,24 +286,36 @@ const openImageLibrary = async () => {
                 </TouchableOpacity>
               </View>
             </View>
+
+            <View style={styles.bottomSpacer} />
           </View>
-        </KeyboardAvoidingView>
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
+
+export default AuthForm;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
-  // keyboardView: {
-  //   flex: 1,
-  // },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 50,
+  },
   content: {
     flex: 1,
     padding: 20,
+    minHeight: '100%',
   },
   header: {
     padding: 24,
@@ -338,6 +335,58 @@ const styles = StyleSheet.create({
   },
   form: {
     flex: 1,
+  },
+  photoSection: {
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  photoContainer: {
+    position: 'relative',
+    marginVertical: 10,
+  },
+  profilePhoto: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  removePhotoButton: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#DC2626',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  removePhotoText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  photoPlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
+  photoPlaceholderText: {
+    fontSize: 30,
+  },
+  photoPlaceholderSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  changePhotoText: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginTop: 5,
   },
   inputContainer: {
     marginBottom: 20,
@@ -392,62 +441,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-
-  photoSection: {
-  marginBottom: 20,
-  alignItems: 'center',
-},
-photoContainer: {
-  position: 'relative',
-  marginBottom: 8,
-},
-profilePhoto: {
-  width: 100,
-  height: 100,
-  borderRadius: 50,
-  borderWidth: 3,
-  borderColor: '#E5E7EB',
-},
-removePhotoButton: {
-  position: 'absolute',
-  top: -5,
-  right: -5,
-  backgroundColor: '#DC2626',
-  width: 25,
-  height: 25,
-  borderRadius: 12.5,
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-removePhotoText: {
-  color: '#FFFFFF',
-  fontSize: 16,
-  fontWeight: 'bold',
-},
-photoPlaceholder: {
-  width: 100,
-  height: 100,
-  borderRadius: 50,
-  borderWidth: 2,
-  borderStyle: 'dashed',
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: '#F9FAFB',
-  marginBottom: 8,
-},
-photoPlaceholderText: {
-  fontSize: 24,
-  marginBottom: 4,
-},
-photoPlaceholderSubtext: {
-  fontSize: 12,
-  color: '#6B7280',
-},
-changePhotoText: {
-  fontSize: 14,
-  fontWeight: '500',
-  textAlign: 'center',
-},
+  bottomSpacer: {
+    height: 50,
+  },
 });
-
-export default AuthForm;

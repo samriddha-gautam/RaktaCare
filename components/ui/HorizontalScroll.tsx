@@ -20,18 +20,47 @@ const categories = [
   { id: 8, name: "O-", color: "#FF6B6B" },
 ];
 
-const HorizontalScroll = () => {
+interface HorizontalScrollProps {
+  selectedBloodType?: string;
+  onSelectBloodType?: (bloodType: string) => void;
+  showTitle?: boolean;
+}
+
+const HorizontalScroll = ({ 
+  selectedBloodType, 
+  onSelectBloodType,
+  showTitle = true 
+}: HorizontalScrollProps) => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
+
+  const handlePress = (name: string) => {
+    if (onSelectBloodType) {
+      onSelectBloodType(name);
+    } else {
+      console.log(name + " Blood group");
+    }
+  };
+
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle,gstyles.text]}>Blood Groups</Text>
-      <ScrollView horizontal>
+      {showTitle && (
+        <Text style={[styles.sectionTitle, gstyles.text]}>Blood Groups</Text>
+      )}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {categories.map((category) => (
           <TouchableOpacity
-            onPress={()=>console.log(category.name + " Blood group")}
+            onPress={() => handlePress(category.name)}
             key={category.id}
-            style={[styles.categoryCard, { backgroundColor: category.color }]}
+            style={[
+              styles.categoryCard,
+              { 
+                backgroundColor: category.color,
+                opacity: selectedBloodType 
+                  ? (selectedBloodType === category.name ? 1 : 0.6)
+                  : 1
+              }
+            ]}
           >
             <Text style={styles.categoryName}>{category.name}</Text>
           </TouchableOpacity>
@@ -42,7 +71,6 @@ const HorizontalScroll = () => {
 };
 
 const styles = StyleSheet.create({
- 
   section: {
     marginTop: 20,
   },
@@ -66,7 +94,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     fontSize: 14,
   },
-  
 });
 
 export default HorizontalScroll;

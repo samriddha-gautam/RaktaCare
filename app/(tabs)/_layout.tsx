@@ -2,6 +2,7 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -31,15 +32,18 @@ export default function TabLayout() {
       <Tabs.Screen
         name="add"
         options={{
-          title: "",
+          title: "Add",
+          tabBarIcon:({color,focused})=>(
+            <Ionicons name="add-circle" size={30} color={color}/>
+          )
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "More",
+          title: "Settings",
           tabBarIcon:({color,focused})=>(
-            <AntDesign name="appstore-o" size={24} color={color}/>
+            <Ionicons name="settings" size={24} color={color}/>
           )
         }}
       />

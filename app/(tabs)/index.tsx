@@ -10,7 +10,6 @@ import {
   ScrollView,
 } from "react-native";
 
-
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
   const styles = createGlobalStyles(theme);

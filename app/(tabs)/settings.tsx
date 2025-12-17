@@ -3,7 +3,15 @@ import ThemeToggle from "@/components/common/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import React from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View, TouchableOpacity, Switch } from "react-native";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const Settings: React.FC = () => {
   const { theme } = useTheme();
@@ -12,48 +20,98 @@ const Settings: React.FC = () => {
   const [donationReminders, setDonationReminders] = React.useState(true);
   const [locationServices, setLocationServices] = React.useState(false);
 
-  const SettingSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  const SettingSection = ({
+    title,
+    children,
+  }: {
+    title: string;
+    children: React.ReactNode;
+  }) => (
     <View style={localStyles.section}>
-      <Text style={[localStyles.sectionTitle, { color: theme.colors.textSecondary }]}>{title}</Text>
+      <Text
+        style={[
+          localStyles.sectionTitle,
+          { color: theme.colors.textSecondary },
+        ]}
+      >
+        {title}
+      </Text>
       {children}
     </View>
   );
 
-  const SettingItem = ({ 
-    label, 
-    value, 
-    onValueChange, 
-    showSwitch = false 
-  }: { 
-    label: string; 
-    value?: boolean; 
+  const SettingItem = ({
+    label,
+    value,
+    onValueChange,
+    showSwitch = false,
+  }: {
+    label: string;
+    value?: boolean;
     onValueChange?: (value: boolean) => void;
     showSwitch?: boolean;
   }) => (
-    <View style={[localStyles.settingItem, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-      <Text style={[localStyles.settingLabel, { color: theme.colors.text }]}>{label}</Text>
+    <View
+      style={[
+        localStyles.settingItem,
+        {
+          backgroundColor: theme.colors.surface,
+          borderBottomColor: theme.colors.border,
+        },
+      ]}
+    >
+      <Text style={[localStyles.settingLabel, { color: theme.colors.text }]}>
+        {label}
+      </Text>
       {showSwitch && (
         <Switch
           value={value}
           onValueChange={onValueChange}
-          trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-          thumbColor={value ? '#fff' : '#f4f3f4'}
+          trackColor={{
+            false: theme.colors.border,
+            true: theme.colors.primary,
+          }}
+          thumbColor={value ? "#fff" : "#f4f3f4"}
         />
       )}
       {!showSwitch && (
-        <Text style={[localStyles.settingValue, { color: theme.colors.textSecondary }]}>›</Text>
+        <Text
+          style={[
+            localStyles.settingValue,
+            { color: theme.colors.textSecondary },
+          ]}
+        >
+          ›
+        </Text>
       )}
     </View>
   );
 
   return (
     <SafeAreaView style={globalStyles.container}>
-      <ScrollView style={localStyles.scrollView} showsVerticalScrollIndicator={false}>
-        <Text style={[localStyles.header, { color: theme.colors.text }]}>Settings</Text>
+      <ScrollView
+        style={localStyles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[localStyles.header, { color: theme.colors.text }]}>
+          Settings
+        </Text>
 
         <SettingSection title="Appearance">
-          <View style={[localStyles.settingItem, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
-            <Text style={[localStyles.settingLabel, { color: theme.colors.text }]}>Theme</Text>
+          <View
+            style={[
+              localStyles.settingItem,
+              {
+                backgroundColor: theme.colors.surface,
+                borderBottomColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text
+              style={[localStyles.settingLabel, { color: theme.colors.text }]}
+            >
+              Theme
+            </Text>
             <ThemeToggle />
           </View>
         </SettingSection>
@@ -134,7 +192,9 @@ const Settings: React.FC = () => {
           />
         </View>
 
-        <Text style={[localStyles.version, { color: theme.colors.textSecondary }]}>
+        <Text
+          style={[localStyles.version, { color: theme.colors.textSecondary }]}
+        >
           Version 1.0.0
         </Text>
       </ScrollView>
@@ -145,11 +205,11 @@ const Settings: React.FC = () => {
 const localStyles = StyleSheet.create({
   scrollView: {
     flex: 1,
-    width: '100%',
+    width: "100%",
   },
   header: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginHorizontal: 20,
     marginTop: 10,
     marginBottom: 20,
@@ -159,28 +219,28 @@ const localStyles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    fontWeight: "600",
+    textTransform: "uppercase",
     letterSpacing: 0.5,
     marginHorizontal: 20,
     marginBottom: 8,
     opacity: 0.7,
   },
   settingItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
   },
   settingLabel: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   settingValue: {
     fontSize: 20,
-    fontWeight: '300',
+    fontWeight: "300",
   },
   dangerZone: {
     marginHorizontal: 20,
@@ -188,7 +248,7 @@ const localStyles = StyleSheet.create({
     marginBottom: 16,
   },
   version: {
-    textAlign: 'center',
+    textAlign: "center",
     fontSize: 12,
     marginBottom: 32,
   },

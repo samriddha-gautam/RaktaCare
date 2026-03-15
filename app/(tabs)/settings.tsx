@@ -3,18 +3,25 @@ import ThemeToggle from "@/components/common/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { createGlobalStyles } from "@/styles/globalStyles";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React from "react";
-import {
-  Alert,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import React, { useEffect } from "react";
+import { Alert, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+
+const NOTIF_PREFS_KEY = "notificationPreferences";
+const LOCATION_SETTINGS_KEY = "locationSettings";
+
+async function readStoredFlag(key: string, field: string, fallback: boolean) {
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    const val = parsed?.[field];
+    return typeof val === "boolean" ? val : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 const Settings: React.FC = () => {
   const { theme } = useTheme();
@@ -23,9 +30,36 @@ const Settings: React.FC = () => {
 
   const { logout, loading: authLoading } = useAuthActions();
 
-  const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  const [donationReminders, setDonationReminders] = React.useState(true);
+  // ✅ Do NOT default push notifications ON.
+  // We default OFF in UI until we read the real stored prefs.
+  const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
+  const [donationReminders, setDonationReminders] = React.useState(false);
   const [locationServices, setLocationServices] = React.useState(false);
+
+  useEffect(() => {
+    (async () => {
+      // If nothing stored yet, keep them OFF (false)
+      const notifEnabled = await readStoredFlag(
+        NOTIF_PREFS_KEY,
+        "notificationsEnabled",
+        false
+      );
+      const remindersEnabled = await readStoredFlag(
+        NOTIF_PREFS_KEY,
+        "donationRemindersEnabled",
+        false
+      );
+      const locEnabled = await readStoredFlag(
+        LOCATION_SETTINGS_KEY,
+        "locationEnabled",
+        false
+      );
+
+      setNotificationsEnabled(notifEnabled);
+      setDonationReminders(remindersEnabled);
+      setLocationServices(locEnabled);
+    })();
+  }, []);
 
   const SettingSection = ({
     title,
@@ -83,6 +117,74 @@ const Settings: React.FC = () => {
     </View>
   );
 
+  const handleToggleNotifications = async (value: boolean) => {
+    // UX: if user wants to enable, send them to Notification Preferences
+    // (where you can request permission / register token etc.)
+    if (value) {
+      router.push("/notification-preferences");
+      return;
+    }
+
+    // Turning OFF: persist locally
+    setNotificationsEnabled(false);
+    setDonationReminders(false);
+
+    try {
+      const raw = await AsyncStorage.getItem(NOTIF_PREFS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const next = {
+        ...parsed,
+        notificationsEnabled: false,
+        emergencyRequestsEnabled: false,
+        donationRemindersEnabled: false,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.log("Failed to persist notificationsEnabled", e);
+    }
+  };
+
+  const handleToggleDonationReminders = async (value: boolean) => {
+    if (!notificationsEnabled && value) {
+      Alert.alert("Enable Notifications", "Turn on push notifications first.");
+      return;
+    }
+
+    setDonationReminders(value);
+
+    try {
+      const raw = await AsyncStorage.getItem(NOTIF_PREFS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const next = {
+        ...parsed,
+        donationRemindersEnabled: value,
+        lastUpdatedAt: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.log("Failed to persist donationRemindersEnabled", e);
+    }
+  };
+
+  const handleToggleLocationServices = async (value: boolean) => {
+    if (value) {
+      router.push("/location-services");
+      return;
+    }
+
+    setLocationServices(false);
+
+    try {
+      const raw = await AsyncStorage.getItem(LOCATION_SETTINGS_KEY);
+      const parsed = raw ? JSON.parse(raw) : {};
+      const next = { ...parsed, locationEnabled: false };
+      await AsyncStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(next));
+    } catch (e) {
+      console.log("Failed to persist locationEnabled", e);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -92,7 +194,6 @@ const Settings: React.FC = () => {
         onPress: async () => {
           const res = await logout();
           if (res.success) {
-            // After logout, go to profile/login screen or landing page
             router.replace("/profile");
           } else {
             Alert.alert("Error", res.error || "Failed to log out.");
@@ -130,13 +231,14 @@ const Settings: React.FC = () => {
           <SettingItem
             label="Push Notifications"
             value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
+            onValueChange={handleToggleNotifications}
             showSwitch={true}
           />
+
           <SettingItem
             label="Donation Reminders"
             value={donationReminders}
-            onValueChange={setDonationReminders}
+            onValueChange={handleToggleDonationReminders}
             showSwitch={true}
           />
 
@@ -161,7 +263,7 @@ const Settings: React.FC = () => {
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push("/notification-preferences")}>
             <SettingItem label="Notification Preferences" />
           </TouchableOpacity>
         </SettingSection>
@@ -170,7 +272,7 @@ const Settings: React.FC = () => {
           <SettingItem
             label="Location Services"
             value={locationServices}
-            onValueChange={setLocationServices}
+            onValueChange={handleToggleLocationServices}
             showSwitch={true}
           />
 
@@ -210,6 +312,10 @@ const Settings: React.FC = () => {
           <TouchableOpacity onPress={() => router.push("/edit-profile")}>
             <SettingItem label="Edit Profile" />
           </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push("/change-password")}>
+            <SettingItem label="Change Password" />
+          </TouchableOpacity>
         </SettingSection>
 
         <View style={localStyles.dangerZone}>
@@ -230,7 +336,13 @@ const Settings: React.FC = () => {
 
 const localStyles = StyleSheet.create({
   scrollView: { flex: 1, width: "100%" },
-  header: { fontSize: 32, fontWeight: "bold", marginHorizontal: 20, marginTop: 10, marginBottom: 20 },
+  header: {
+    fontSize: 32,
+    fontWeight: "bold",
+    marginHorizontal: 20,
+    marginTop: 10,
+    marginBottom: 20,
+  },
   section: { marginBottom: 24 },
   sectionTitle: {
     fontSize: 14,

@@ -1,10 +1,9 @@
-import { auth, db } from "@/services/firebase/config";
+import { auth, db, storage } from "@/services/firebase/config";
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import {
   deleteObject,
   getDownloadURL,
-  getStorage,
   ref,
   uploadBytes,
 } from "firebase/storage";
@@ -13,6 +12,22 @@ const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png"]);
 
 function getAvatarPath(uid: string) {
   return `profilePhotos/${uid}/avatar.jpg`;
+}
+
+// ✅ More reliable in Expo/React Native for file:// URIs
+function uriToBlob(uri: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = () => resolve(xhr.response);
+      xhr.onerror = () => reject(new TypeError("uriToBlob failed"));
+      xhr.responseType = "blob";
+      xhr.open("GET", uri, true);
+      xhr.send(null);
+    } catch (e) {
+      reject(e);
+    }
+  });
 }
 
 export async function uploadProfilePhotoAsync(params: {
@@ -26,18 +41,27 @@ export async function uploadProfilePhotoAsync(params: {
     throw new Error("Only JPG / JPEG / PNG images are allowed.");
   }
 
-  const res = await fetch(params.uri);
-  const blob = await res.blob();
+  // Convert local image URI -> Blob
+  const blob = await uriToBlob(params.uri);
 
-  const storage = getStorage();
   const storageRef = ref(storage, getAvatarPath(user.uid));
 
-  await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+  try {
+    // We compress to JPEG in ProfileView, so contentType should be image/jpeg
+    await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+  } catch (e: any) {
+    console.log("UPLOAD ERROR code:", e?.code);
+    console.log("UPLOAD ERROR message:", e?.message);
+    console.log("UPLOAD ERROR serverResponse:", e?.serverResponse);
+    throw e;
+  }
 
   const downloadURL = await getDownloadURL(storageRef);
 
+  // Update Firebase Auth profile
   await updateProfile(user, { photoURL: downloadURL });
 
+  // Update Firestore user doc
   await setDoc(
     doc(db, "users", user.uid),
     { photoURL: downloadURL, updatedAt: new Date().toISOString() },
@@ -51,13 +75,12 @@ export async function deleteProfilePhotoAsync() {
   const user = auth.currentUser;
   if (!user) throw new Error("Not authenticated");
 
-  const storage = getStorage();
   const storageRef = ref(storage, getAvatarPath(user.uid));
 
   try {
     await deleteObject(storageRef);
-  } catch {
-    // ignore if object not found
+  } catch (e) {
+    // ignore if not found or already deleted
   }
 
   await updateProfile(user, { photoURL: null });

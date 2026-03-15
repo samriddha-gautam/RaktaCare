@@ -36,27 +36,26 @@ export const useAuthActions = () => {
         email: user.email || email,
         name: displayName || "",
         displayName: displayName || "",
-        phone: "", // ← ADD THIS LINE
+        phone: "",
+        role: "donor",
+        verified: false,
+        verifiedAt: null,
+        verificationMethod: null,
         createdAt: new Date().toISOString(),
       };
 
       await setDoc(doc(db, "users", user.uid), initialProfileData);
-
       await setProfileData(initialProfileData);
 
-      console.log("User signed up successfully:", user.email);
       return { success: true, user };
     } catch (error: any) {
-      console.error("Signup error:", error);
-      return {
-        success: false,
-        error: getErrorMessage(error),
-      };
+      return { success: false, error: getErrorMessage(error) };
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ FIXED LOGIN (auto-migrate missing fields)
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
@@ -67,38 +66,65 @@ export const useAuthActions = () => {
       );
       const user = userCredential.user;
 
-      let profileData;
+      let profileData: any;
+
+      const userRef = doc(db, "users", user.uid);
+
       try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
+        const userDoc = await getDoc(userRef);
+
         if (userDoc.exists()) {
           profileData = userDoc.data();
+
+          // ✅ Migration: add missing fields for old accounts
+          const needsRole = profileData.role === undefined;
+          const needsVerified = profileData.verified === undefined;
+
+          if (needsRole || needsVerified) {
+            const patch: any = {};
+            if (needsRole) patch.role = "donor";
+            if (needsVerified) patch.verified = false;
+            if (profileData.verifiedAt === undefined) patch.verifiedAt = null;
+            if (profileData.verificationMethod === undefined)
+              patch.verificationMethod = null;
+
+            await setDoc(userRef, patch, { merge: true });
+            profileData = { ...profileData, ...patch };
+          }
         } else {
           profileData = {
             id: user.uid,
             email: user.email || email,
             name: user.displayName || "",
             displayName: user.displayName || "",
+            phone: "",
+            role: "donor",
+            verified: false,
+            verifiedAt: null,
+            verificationMethod: null,
+            createdAt: new Date().toISOString(),
           };
+          await setDoc(userRef, profileData, { merge: true });
         }
-      } catch (firestoreError) {
+      } catch {
         profileData = {
           id: user.uid,
           email: user.email || email,
           name: user.displayName || "",
           displayName: user.displayName || "",
+          phone: "",
+          role: "donor",
+          verified: false,
+          verifiedAt: null,
+          verificationMethod: null,
         };
       }
 
       await setProfileData(profileData);
 
-      console.log("User logged in successfully:", user.email);
       return { success: true, user };
     } catch (error: any) {
-      console.error("Login error:", error);
-      return {
-        success: false,
-        error: getErrorMessage(error),
-      };
+      return { success: false, error: getErrorMessage(error) };
     } finally {
       setLoading(false);
     }
@@ -109,15 +135,9 @@ export const useAuthActions = () => {
     try {
       await signOut(auth);
       await clearAllData();
-
-      console.log("User logged out successfully");
       return { success: true };
     } catch (error: any) {
-      console.error("Logout error:", error);
-      return {
-        success: false,
-        error: getErrorMessage(error),
-      };
+      return { success: false, error: getErrorMessage(error) };
     } finally {
       setLoading(false);
     }
@@ -134,7 +154,7 @@ export const useAuthActions = () => {
         throw new Error("No user is currently logged in");
       }
 
-      const authUpdates: { displayName?: string; phone?:string } = {};
+      const authUpdates: { displayName?: string; phone?: string } = {};
       if (updates.displayName) authUpdates.displayName = updates.displayName;
       if (updates.phone) authUpdates.phone = updates.phone;
 
@@ -156,23 +176,16 @@ export const useAuthActions = () => {
       };
 
       if (auth.currentUser.uid) {
-        await setDoc(
-          doc(db, "users", auth.currentUser.uid),
-          updatedProfileData,
-          { merge: true }
-        );
+        await setDoc(doc(db, "users", auth.currentUser.uid), updatedProfileData, {
+          merge: true,
+        });
       }
 
       await setProfileData(updatedProfileData);
 
-      console.log("Profile updated successfully");
       return { success: true };
     } catch (error: any) {
-      console.error("Profile update error:", error);
-      return {
-        success: false,
-        error: getErrorMessage(error),
-      };
+      return { success: false, error: getErrorMessage(error) };
     } finally {
       setLoading(false);
     }
@@ -186,6 +199,7 @@ export const useAuthActions = () => {
     loading,
   };
 };
+
 const getErrorMessage = (error: any): string => {
   switch (error.code) {
     case "auth/email-already-in-use":

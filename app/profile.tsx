@@ -1,19 +1,22 @@
+import AuthForm from "@/components/ui/AuthForm";
+import ProfileView from "@/components/ui/ProfileView";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAuthActions } from "@/hooks/useAuthActions";
+import { useRouter } from "expo-router";
+import React, { useEffect } from "react";
 import {
-  StyleSheet,
-  Text,
-  View,
   ActivityIndicator,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import React from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuthActions } from "@/hooks/useAuthActions";
-import ProfileView from "@/components/ui/ProfileView";
-import AuthForm from "@/components/ui/AuthForm";
-
 
 const Profile = () => {
+  const router = useRouter();
+
   const {
     user,
     profileData,
@@ -23,31 +26,41 @@ const Profile = () => {
     refreshUserData,
   } = useAuth();
 
-
   const { signUp, login, logout, loading: authLoading } = useAuthActions();
+
+  // ✅ Auto-redirect to landing page after login
+  useEffect(() => {
+    if (isAuthenticated) {
+      // landing page
+      router.replace("/(tabs)");
+      // or if you want exactly Home:
+      // router.replace("/(tabs)/index");
+    }
+  }, [isAuthenticated, router]);
 
   const handleLogin = async (email: string, password: string) => {
     const result = await login(email, password);
     if (!result.success && result.error) {
       console.error("Login failed:", result.error);
     }
+    // No need to navigate here; useEffect handles it
   };
-  const handleSignUp = async (
-    email: string,
-    password: string,
-    name: string
-  ) => {
+
+  const handleSignUp = async (email: string, password: string, name: string) => {
     const result = await signUp(email, password, name);
     if (!result.success && result.error) {
       console.error("Signup failed:", result.error);
     }
+    // No need to navigate here; useEffect handles it
   };
+
   const handleLogout = async () => {
     const result = await logout();
     if (!result.success && result.error) {
       console.error("Logout failed:", result.error);
     }
   };
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.loadingContainer}>
@@ -60,10 +73,22 @@ const Profile = () => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container}>
+        {/* Header with back arrow */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.push("/(tabs)")}
+            style={styles.backButton}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+
           <Text style={styles.headerTitle}>
             {isAuthenticated ? "Profile" : "Welcome"}
           </Text>
+
+          <View style={styles.headerRightSpacer} />
+
           {isAuthenticated && <View style={styles.headerAccent} />}
         </View>
 
@@ -123,12 +148,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
     position: "relative",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  backButtonText: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#DC2626",
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
     color: "#1F2937",
     textAlign: "center",
+  },
+  headerRightSpacer: {
+    width: 44,
+    height: 44,
   },
   headerAccent: {
     position: "absolute",

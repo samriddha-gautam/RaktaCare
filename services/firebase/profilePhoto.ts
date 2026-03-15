@@ -1,9 +1,19 @@
 import { auth, db } from "@/services/firebase/config";
 import { updateProfile } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
+import {
+  deleteObject,
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytes,
+} from "firebase/storage";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png"]);
+
+function getAvatarPath(uid: string) {
+  return `profilePhotos/${uid}/avatar.jpg`;
+}
 
 export async function uploadProfilePhotoAsync(params: {
   uri: string;
@@ -16,23 +26,18 @@ export async function uploadProfilePhotoAsync(params: {
     throw new Error("Only JPG / JPEG / PNG images are allowed.");
   }
 
-  // Convert file URI → Blob
   const res = await fetch(params.uri);
   const blob = await res.blob();
 
   const storage = getStorage();
-  const ext = params.mimeType === "image/png" ? "png" : "jpg";
-  const objectPath = `profilePhotos/${user.uid}/avatar.${ext}`;
+  const storageRef = ref(storage, getAvatarPath(user.uid));
 
-  const storageRef = ref(storage, objectPath);
-  await uploadBytes(storageRef, blob, { contentType: params.mimeType });
+  await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
 
   const downloadURL = await getDownloadURL(storageRef);
 
-  // Update Firebase Auth
   await updateProfile(user, { photoURL: downloadURL });
 
-  // Update Firestore user doc
   await setDoc(
     doc(db, "users", user.uid),
     { photoURL: downloadURL, updatedAt: new Date().toISOString() },
@@ -40,4 +45,28 @@ export async function uploadProfilePhotoAsync(params: {
   );
 
   return { downloadURL };
+}
+
+export async function deleteProfilePhotoAsync() {
+  const user = auth.currentUser;
+  if (!user) throw new Error("Not authenticated");
+
+  const storage = getStorage();
+  const storageRef = ref(storage, getAvatarPath(user.uid));
+
+  try {
+    await deleteObject(storageRef);
+  } catch {
+    // ignore if object not found
+  }
+
+  await updateProfile(user, { photoURL: null });
+
+  await setDoc(
+    doc(db, "users", user.uid),
+    { photoURL: null, updatedAt: new Date().toISOString() },
+    { merge: true }
+  );
+
+  return { success: true };
 }

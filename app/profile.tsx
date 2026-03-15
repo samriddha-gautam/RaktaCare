@@ -3,7 +3,7 @@ import ProfileView from "@/components/ui/ProfileView";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
+import React, { useRef } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -28,30 +28,35 @@ const Profile = () => {
 
   const { signUp, login, logout, loading: authLoading } = useAuthActions();
 
-  // ✅ Auto-redirect to landing page after login
-  useEffect(() => {
-    if (isAuthenticated) {
-      // landing page
-      router.replace("/(tabs)");
-      // or if you want exactly Home:
-      // router.replace("/(tabs)/index");
-    }
-  }, [isAuthenticated, router]);
+  // ✅ only redirect when user just logged in/sign up from this screen
+  const shouldRedirectAfterAuth = useRef(false);
 
   const handleLogin = async (email: string, password: string) => {
+    shouldRedirectAfterAuth.current = true;
+
     const result = await login(email, password);
     if (!result.success && result.error) {
+      shouldRedirectAfterAuth.current = false;
       console.error("Login failed:", result.error);
+      return;
     }
-    // No need to navigate here; useEffect handles it
+
+    // ✅ redirect to landing after successful login
+    router.replace("/(tabs)");
   };
 
   const handleSignUp = async (email: string, password: string, name: string) => {
+    shouldRedirectAfterAuth.current = true;
+
     const result = await signUp(email, password, name);
     if (!result.success && result.error) {
+      shouldRedirectAfterAuth.current = false;
       console.error("Signup failed:", result.error);
+      return;
     }
-    // No need to navigate here; useEffect handles it
+
+    // ✅ redirect to landing after successful signup
+    router.replace("/(tabs)");
   };
 
   const handleLogout = async () => {
@@ -88,7 +93,6 @@ const Profile = () => {
           </Text>
 
           <View style={styles.headerRightSpacer} />
-
           {isAuthenticated && <View style={styles.headerAccent} />}
         </View>
 

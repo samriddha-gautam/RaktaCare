@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { User } from "firebase/auth";
 
+
 interface ProfileData {
   id?: string;
   name?: string;
@@ -35,6 +36,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(profileData || {});
+
 
   const dynamicStyles = StyleSheet.create({
     accentButton: { backgroundColor: accentColor },

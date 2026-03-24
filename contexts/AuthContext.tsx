@@ -1,11 +1,12 @@
 import { auth } from "@/services/firebase/config";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const STORAGE_KEYS = {
   USER: "@auth_user",
   PROFILE_DATA: "@profile_data",
+  // Keep the key if you want, but we will NOT use it as source of truth
   IS_AUTHENTICATED: "@is_authenticated",
 } as const;
 
@@ -58,10 +59,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
           photoURL: userData.photoURL,
           emailVerified: userData.emailVerified,
         };
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.USER,
-          JSON.stringify(userToStore)
-        );
+        await AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(userToStore));
         await AsyncStorage.setItem(STORAGE_KEYS.IS_AUTHENTICATED, "true");
       } else {
         await AsyncStorage.removeItem(STORAGE_KEYS.USER);
@@ -75,10 +73,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   const setProfileData = async (data: ProfileData | null) => {
     try {
       if (data) {
-        await AsyncStorage.setItem(
-          STORAGE_KEYS.PROFILE_DATA,
-          JSON.stringify(data)
-        );
+        await AsyncStorage.setItem(STORAGE_KEYS.PROFILE_DATA, JSON.stringify(data));
       } else {
         await AsyncStorage.removeItem(STORAGE_KEYS.PROFILE_DATA);
       }
@@ -88,46 +83,18 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
-  const loadPersistedData = async () => {
+  // ✅ Only load cached PROFILE data (do not set isAuthenticated from storage)
+  const loadPersistedProfileOnly = async () => {
     try {
-      setIsLoading(true);
-      const [authStatus, storedUser, storedProfile] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED),
-        AsyncStorage.getItem(STORAGE_KEYS.USER),
-        AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA),
-      ]);
-      const wasAuthenticated = authStatus === "true";
-      let persistedUser = null;
-      let persistedProfile = null;
-      if (storedUser) {
-        persistedUser = JSON.parse(storedUser);
-      }
+      const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
       if (storedProfile) {
-        persistedProfile = JSON.parse(storedProfile);
-        setProfileDataState(persistedProfile);
+        setProfileDataState(JSON.parse(storedProfile));
       }
-      if (wasAuthenticated && persistedUser) {
-        setIsAuthenticated(true);
-        console.log(
-          "✅ Restored authentication state from storage - User should stay logged in"
-        );
-      } else {
-        setIsAuthenticated(false);
-        console.log("❌ No valid authentication found in storage");
-      }
-      return { wasAuthenticated, persistedUser, persistedProfile };
     } catch (error) {
-      console.error("Error loading persisted data:", error);
-      setIsAuthenticated(false);
-      return {
-        wasAuthenticated: false,
-        persistedUser: null,
-        persistedProfile: null,
-      };
-    } finally {
-      setIsLoading(false);
+      console.error("Error loading persisted profile:", error);
     }
   };
+
   const clearAllData = async () => {
     try {
       await AsyncStorage.multiRemove([
@@ -137,6 +104,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
       ]);
       setProfileDataState(null);
       setIsAuthenticated(false);
+      setUser(null);
       console.log("Cleared all persisted auth data");
     } catch (error) {
       console.error("Error clearing persisted data:", error);
@@ -151,29 +119,24 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   };
 
   useEffect(() => {
-    loadPersistedData();
+    // load cached profile while Firebase resolves auth session
+    loadPersistedProfileOnly();
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log(
-        "🔥 Firebase auth state changed:",
-        firebaseUser?.email || "No user"
-      );
+      console.log("🔥 Firebase auth state changed:", firebaseUser?.email || "No user");
 
       setUser(firebaseUser);
 
       if (firebaseUser) {
-        console.log("✅ Firebase confirms user is authenticated");
         setIsAuthenticated(true);
         await persistUserData(firebaseUser);
 
+        // If profileData missing, try to restore cached profile or create minimal one
         if (!profileData) {
-          const storedProfile = await AsyncStorage.getItem(
-            STORAGE_KEYS.PROFILE_DATA
-          );
+          const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
           if (!storedProfile) {
-            console.log("📝 Creating auto profile data from Firebase user");
             const autoProfileData: ProfileData = {
               id: firebaseUser.uid,
               email: firebaseUser.email || "",
@@ -181,23 +144,26 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
               displayName: firebaseUser.displayName || "",
             };
             await setProfileData(autoProfileData);
+          } else {
+            setProfileDataState(JSON.parse(storedProfile));
           }
         }
       } else {
-        console.log("❌ Firebase says no user authenticated");
-        if (!isLoading) {
-          console.log("🔄 Clearing authentication state");
-          setIsAuthenticated(false);
-          await persistUserData(null);
-        }
+        // ✅ ALWAYS clear state on logout (no isLoading condition)
+        setIsAuthenticated(false);
+        setProfileDataState(null);
+        await persistUserData(null);
+
+        // Optional: also remove profile cache on sign-out to avoid showing old data
+        await AsyncStorage.removeItem(STORAGE_KEYS.PROFILE_DATA);
       }
 
-      if (isLoading) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     });
 
     return unsubscribe;
+    // IMPORTANT: do not include profileData in deps, otherwise effect can re-run unexpectedly
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const contextValue: AuthContextType = {
@@ -210,9 +176,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     refreshUserData,
   };
 
-  return (
-    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

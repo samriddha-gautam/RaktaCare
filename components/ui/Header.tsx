@@ -3,19 +3,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { router } from "expo-router";
 import React, {
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
   useRef,
   useState,
-  useCallback,
-  forwardRef,
-  useImperativeHandle,
 } from "react";
 import {
-  StyleSheet,
   Animated,
-  View,
-  TouchableOpacity,
-  Text,
   Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 export const DEFAULT_HEADER_HEIGHT = 150;

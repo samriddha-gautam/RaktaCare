@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 import React, { useRef } from "react";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -47,13 +48,17 @@ const Profile = () => {
     router.replace("/(tabs)");
   };
 
-  const handleSignUp = async (email: string, password: string, name: string) => {
+  const handleSignUp = async (
+    email: string,
+    password: string,
+    name: string,
+  ) => {
     shouldRedirectAfterAuth.current = true;
 
     const result = await signUp(email, password, name);
     if (!result.success && result.error) {
       shouldRedirectAfterAuth.current = false;
-      console.error("Signup failed:", result.error);
+      Alert.alert("Login faild", result.error);
       return;
     }
 
@@ -70,9 +75,16 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+      <SafeAreaView
+        style={[
+          styles.loadingContainer,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+        <Text
+          style={[styles.loadingText, { color: theme.colors.textSecondary }]}
+        >
           Loading…
         </Text>
       </SafeAreaView>
@@ -80,16 +92,32 @@ const Profile = () => {
   }
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
-      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
+    >
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme.colors.background }]}
+      >
         {/* Header with back arrow */}
-        <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.colors.surface,
+              borderBottomColor: theme.colors.border,
+            },
+          ]}
+        >
           <TouchableOpacity
             onPress={() => router.push("/(tabs)")}
             style={styles.backButton}
             activeOpacity={0.7}
           >
-            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>←</Text>
+            <Text
+              style={[styles.backButtonText, { color: theme.colors.primary }]}
+            >
+              ←
+            </Text>
           </TouchableOpacity>
 
           <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
@@ -98,11 +126,18 @@ const Profile = () => {
 
           <View style={styles.headerRightSpacer} />
           {isAuthenticated && (
-            <View style={[styles.headerAccent, { backgroundColor: theme.colors.primary }]} />
+            <View
+              style={[
+                styles.headerAccent,
+                { backgroundColor: theme.colors.primary },
+              ]}
+            />
           )}
         </View>
 
-        <View style={[styles.content, { backgroundColor: theme.colors.background }]}>
+        <View
+          style={[styles.content, { backgroundColor: theme.colors.background }]}
+        >
           {isAuthenticated ? (
             <ProfileView
               user={user}

@@ -1,6 +1,9 @@
+import { useTheme } from "@/contexts/ThemeContext";
 import { uploadProfilePhotoAsync } from "@/services/firebase/profilePhoto";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { User } from "firebase/auth";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -50,16 +53,22 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   onRefresh,
   onLogout,
   loading = false,
-  accentColor = "#DC2626",
-  backgroundColor = "#FEF2F2",
+  accentColor: propAccentColor,
+  backgroundColor: propBgColor,
 }) => {
+  const { theme } = useTheme();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(profileData || {});
   const [photoUploading, setPhotoUploading] = useState(false);
 
-  // ✅ FIX: Sync editedData when profileData changes (e.g. after photo upload)
-  // This was missing before, so after a photo upload the profile would show
-  // stale data until a full remount.
+  // Use props if provided, otherwise fallback to theme
+  const accentColor = propAccentColor || theme.colors.primary;
+  const backgroundColor = propBgColor || theme.colors.primaryLight;
+  
+  // Memoize styles to avoid recreation on every render
+  const s = useMemo(() => createStyles(theme), [theme]);
+
   useEffect(() => {
     if (profileData && !isEditing) {
       setEditedData(profileData);
@@ -67,41 +76,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   }, [profileData, isEditing]);
 
 
+  // We can still use these for prop-based overrides if needed
   const dynamicStyles = useMemo(() => StyleSheet.create({
     accentButton: { backgroundColor: accentColor },
     lightBackground: { backgroundColor: backgroundColor },
     accentText: { color: accentColor },
   }), [accentColor, backgroundColor]);
 
-  const verification = useMemo(() => {
-    const role = (profileData?.role || "donor").toString();
-    const verified = Boolean(profileData?.verified);
-
-    if (role !== "donor") {
-      return {
-        label: `Role: ${role}`,
-        color: "#2563EB",
-        bg: "#DBEAFE",
-        note: "This account is not a donor account.",
-      };
-    }
-
-    if (verified) {
-      return {
-        label: "✅ Verified Donor",
-        color: "#16A34A",
-        bg: "#DCFCE7",
-        note: "You can receive emergency alerts based on your settings.",
-      };
-    }
-
-    return {
-      label: "⏳ Not Verified",
-      color: "#F59E0B",
-      bg: "#FEF3C7",
-      note: "Verification is required for emergency alerts and location sharing.",
-    };
-  }, [profileData?.role, profileData?.verified]);
+  const isVerified = Boolean(profileData?.verified);
+  const isDonor = (profileData?.role || "donor").toString() === "donor";
 
   const handleSave = async () => {
     try {
@@ -131,6 +114,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
+        // @ts-ignore - Handle deprecation/runtime mismatch safely
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true, // user can crop
         aspect: [1, 1],      // square crop (passport style)
@@ -181,44 +165,66 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
   if (!profileData && !loading) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.noDataContainer}>
-          <Text style={styles.noDataText}>No profile data available</Text>
+      <SafeAreaView style={s.container}>
+        <View style={s.noDataContainer}>
+          <Text style={s.noDataText}>No profile data available</Text>
           <TouchableOpacity
-            style={[styles.refreshButton, dynamicStyles.accentButton]}
+            style={[s.refreshButton, dynamicStyles.accentButton]}
             onPress={onRefresh}
           >
-            <Text style={styles.refreshButtonText}>Refresh Profile</Text>
+            <Text style={s.refreshButtonText}>Refresh Profile</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
   }
 
-  // ✅ FIX: Build the photo URI properly — try profileData first, then
-  // Firebase Auth user, but only use it if it is a non-empty string.
   const rawPhotoUri = profileData?.photoURL || user?.photoURL;
   const photoUri = typeof rawPhotoUri === "string" && rawPhotoUri.length > 0
     ? rawPhotoUri
     : "";
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Welcome */}
-        <View style={[styles.welcomeSection, dynamicStyles.lightBackground]}>
-          <Text style={[styles.welcomeText, dynamicStyles.accentText]}>
-            Hello {profileData?.name || profileData?.displayName || "User"}!
-          </Text>
+    <SafeAreaView style={s.container}>
+      <View style={s.content}>
+        <View style={[s.welcomeSection, dynamicStyles.lightBackground]}>
+          <View style={s.welcomeRow}>
+            <Text style={[s.welcomeText, dynamicStyles.accentText]}>
+              Hello {profileData?.name || profileData?.displayName || "User"}!
+            </Text>
+            {isDonor && isVerified && (
+              <View style={s.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={18} color="#1D9BF0" />
+              </View>
+            )}
+          </View>
+          {isDonor && !isVerified && (
+            <TouchableOpacity
+              style={s.notVerifiedRow}
+              onPress={() => router.push("/eligibility-settings")}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="alert-circle-outline" size={14} color="#F59E0B" />
+              <Text style={s.notVerifiedText}>Not verified</Text>
+              <Ionicons name="chevron-forward" size={14} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          )}
+          {!isDonor && (
+            <View style={s.roleBadgeRow}>
+              <Ionicons name="shield-checkmark-outline" size={14} color="#2563EB" />
+              <Text style={[s.roleBadgeText, { color: "#2563EB" }]}>
+                {(profileData?.role || "").toString()}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* ✅ Profile photo + upload */}
-        <View style={styles.photoRow}>
+        <View style={s.photoRow}>
           {photoUri ? (
-            <Image source={{ uri: photoUri }} style={styles.avatar} />
+            <Image source={{ uri: photoUri }} style={s.avatar} />
           ) : (
-            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: backgroundColor }]}>
-              <Text style={[styles.avatarFallbackText, { color: accentColor }]}>
+            <View style={[s.avatar, s.avatarFallback, { backgroundColor: backgroundColor }]}>
+              <Text style={[s.avatarFallbackText, { color: accentColor }]}>
                 {(profileData?.displayName?.[0] ||
                   profileData?.name?.[0] ||
                   "U"
@@ -229,54 +235,46 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
           <View style={{ flex: 1 }}>
             <TouchableOpacity
-              style={[styles.photoButton, dynamicStyles.accentButton]}
+              style={[s.photoButton, dynamicStyles.accentButton]}
               onPress={pickAndUploadPhoto}
               disabled={photoUploading}
               activeOpacity={0.8}
             >
-              <Text style={styles.photoButtonText}>
+              <Text style={s.photoButtonText}>
                 {photoUploading ? "Uploading…" : "Change Photo"}
               </Text>
             </TouchableOpacity>
 
-            <Text style={styles.photoHint}>
+            <Text style={s.photoHint}>
               JPG / PNG only · Crop to a clear face photo.
             </Text>
           </View>
         </View>
 
-        {/* Verification badge */}
-        <View style={[styles.verificationCard, { backgroundColor: verification.bg }]}>
-          <Text style={[styles.verificationLabel, { color: verification.color }]}>
-            {verification.label}
-          </Text>
-          <Text style={styles.verificationNote}>{verification.note}</Text>
-        </View>
-
         {/* Profile info */}
-        <View style={styles.profileSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, dynamicStyles.accentText]}>
+        <View style={s.profileSection}>
+          <View style={s.sectionHeader}>
+            <Text style={[s.sectionTitle, dynamicStyles.accentText]}>
               Your Profile
             </Text>
 
             <TouchableOpacity
               onPress={() => (isEditing ? handleCancel() : setIsEditing(true))}
-              style={[styles.editButton, dynamicStyles.accentButton]}
+              style={[s.editButton, dynamicStyles.accentButton]}
               activeOpacity={0.8}
             >
-              <Text style={styles.editButtonText}>
+              <Text style={s.editButtonText}>
                 {isEditing ? "Cancel" : "Edit"}
               </Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.profileDetails}>
-            <View style={styles.profileItem}>
-              <Text style={styles.label}>Display Name</Text>
+          <View style={s.profileDetails}>
+            <View style={s.profileItem}>
+              <Text style={s.label}>Display Name</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.editInput}
+                  style={s.editInput}
                   value={editedData.name || editedData.displayName || ""}
                   onChangeText={(text) =>
                     setEditedData((prev: any) => ({
@@ -288,7 +286,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   placeholder={profileData?.displayName}
                 />
               ) : (
-                <Text style={styles.value}>
+                <Text style={s.value}>
                   {profileData?.name ||
                     profileData?.displayName ||
                     "Not provided"}
@@ -296,18 +294,18 @@ const ProfileView: React.FC<ProfileViewProps> = ({
               )}
             </View>
 
-            <View style={styles.profileItem}>
-              <Text style={styles.label}>Email</Text>
-              <Text style={[styles.value, styles.valueMuted]}>
+            <View style={s.profileItem}>
+              <Text style={s.label}>Email</Text>
+              <Text style={[s.value, s.valueMuted]}>
                 {profileData?.email || user?.email || "Not provided"}
               </Text>
             </View>
 
-            <View style={styles.profileItem}>
-              <Text style={styles.label}>Phone</Text>
+            <View style={s.profileItem}>
+              <Text style={s.label}>Phone</Text>
               {isEditing ? (
                 <TextInput
-                  style={styles.editInput}
+                  style={s.editInput}
                   value={editedData.phone || ""}
                   onChangeText={(text) =>
                     setEditedData((prev: any) => ({ ...prev, phone: text }))
@@ -316,15 +314,15 @@ const ProfileView: React.FC<ProfileViewProps> = ({
                   keyboardType="phone-pad"
                 />
               ) : (
-                <Text style={styles.value}>
+                <Text style={s.value}>
                   {profileData?.phone || "Not provided"}
                 </Text>
               )}
             </View>
 
-            <View style={[styles.profileItem, { borderBottomWidth: 0 }]}>
-              <Text style={styles.label}>User ID</Text>
-              <Text style={[styles.value, styles.valueId]}>
+            <View style={[s.profileItem, { borderBottomWidth: 0 }]}>
+              <Text style={s.label}>User ID</Text>
+              <Text style={[s.value, s.valueId]}>
                 {profileData?.id || user?.uid || "Not available"}
               </Text>
             </View>
@@ -332,12 +330,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
           {isEditing && (
             <TouchableOpacity
-              style={[styles.saveButton, dynamicStyles.accentButton]}
+              style={[s.saveButton, dynamicStyles.accentButton]}
               onPress={handleSave}
               disabled={loading}
               activeOpacity={0.8}
             >
-              <Text style={styles.saveButtonText}>
+              <Text style={s.saveButtonText}>
                 {loading ? "Saving…" : "Save Changes"}
               </Text>
             </TouchableOpacity>
@@ -345,32 +343,32 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         </View>
 
         {/* Actions */}
-        <View style={styles.actionButtons}>
+        <View style={s.actionButtons}>
           <TouchableOpacity
-            style={[styles.refreshButton, styles.refreshButtonSecondary]}
+            style={[s.refreshButton, s.refreshButtonSecondary]}
             onPress={onRefresh}
             disabled={loading}
             activeOpacity={0.8}
           >
-            <Text style={styles.refreshButtonText}>
+            <Text style={s.refreshButtonText}>
               {loading ? "Refreshing…" : "Refresh Data"}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.logoutButton, dynamicStyles.accentButton]}
+            style={[s.logoutButton, dynamicStyles.accentButton]}
             onPress={onLogout}
             disabled={loading}
             activeOpacity={0.8}
           >
-            <Text style={styles.logoutButtonText}>
+            <Text style={s.logoutButtonText}>
               {loading ? "Logging out…" : "Logout"}
             </Text>
           </TouchableOpacity>
         </View>
 
         {(loading || photoUploading) && (
-          <View style={styles.loadingOverlay}>
+          <View style={s.loadingOverlay}>
             <ActivityIndicator size="large" color={accentColor} />
           </View>
         )}
@@ -381,8 +379,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
 export default ProfileView;
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
+const createStyles = (theme: any) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: theme.colors.background },
   content: { flex: 1 },
 
   welcomeSection: {
@@ -391,7 +389,46 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     alignItems: "center",
   },
+  welcomeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
   welcomeText: { fontSize: 24, fontWeight: "bold" },
+  verifiedBadge: {
+    marginLeft: 2,
+    marginTop: 2,
+  },
+  notVerifiedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    backgroundColor: "#FEF3C7",
+  },
+  notVerifiedText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#F59E0B",
+  },
+  roleBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    backgroundColor: "#DBEAFE",
+  },
+  roleBadgeText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
 
   photoRow: {
     flexDirection: "row",
@@ -403,7 +440,7 @@ const styles = StyleSheet.create({
     width: 76,
     height: 76,
     borderRadius: 38,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: theme.colors.surface,
   },
   avatarFallback: {
     alignItems: "center",
@@ -421,19 +458,7 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   photoButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  photoHint: { marginTop: 6, fontSize: 11, color: "#9CA3AF" },
-
-  verificationCard: {
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 20,
-  },
-  verificationLabel: {
-    fontSize: 16,
-    fontWeight: "800",
-    marginBottom: 6,
-  },
-  verificationNote: { fontSize: 12, color: "#374151", lineHeight: 18 },
+  photoHint: { marginTop: 6, fontSize: 11, color: theme.colors.textMuted },
 
   profileSection: { flex: 1, marginBottom: 24 },
   sectionHeader: {
@@ -451,27 +476,28 @@ const styles = StyleSheet.create({
   editButtonText: { color: "#FFFFFF", fontSize: 14, fontWeight: "600" },
 
   profileDetails: {
-    backgroundColor: "#F6F7F9",
+    backgroundColor: theme.colors.surface,
     borderRadius: 14,
     padding: 16,
   },
   profileItem: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: theme.colors.border,
   },
-  label: { fontSize: 13, fontWeight: "600", color: "#6B7280", marginBottom: 4 },
-  value: { fontSize: 16, color: "#1F2937" },
-  valueMuted: { color: "#6B7280" },
-  valueId: { fontSize: 12, color: "#9CA3AF", fontFamily: undefined },
+  label: { fontSize: 13, fontWeight: "600", color: theme.colors.textSecondary, marginBottom: 4 },
+  value: { fontSize: 16, color: theme.colors.text },
+  valueMuted: { color: theme.colors.textMuted },
+  valueId: { fontSize: 12, color: theme.colors.textMuted, fontFamily: undefined },
   editInput: {
     borderWidth: 1,
-    borderColor: "#D1D5DB",
+    borderColor: theme.colors.border,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 16,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: theme.colors.background,
+    color: theme.colors.text,
   },
 
   saveButton: {
@@ -484,7 +510,7 @@ const styles = StyleSheet.create({
 
   actionButtons: { gap: 12 },
   refreshButton: { paddingVertical: 14, borderRadius: 10, alignItems: "center" },
-  refreshButtonSecondary: { backgroundColor: "#6B7280" },
+  refreshButtonSecondary: { backgroundColor: theme.colors.textSecondary },
   refreshButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
   logoutButton: { paddingVertical: 16, borderRadius: 14, alignItems: "center" },
   logoutButtonText: { color: "#FFFFFF", fontSize: 18, fontWeight: "600" },
@@ -495,7 +521,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 32,
   },
-  noDataText: { fontSize: 18, fontWeight: "600", color: "#374151", marginBottom: 16 },
+  noDataText: { fontSize: 18, fontWeight: "600", color: theme.colors.text, marginBottom: 16 },
 
   loadingOverlay: {
     position: "absolute",
@@ -503,7 +529,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "rgba(255, 255, 255, 0.7)",
+    backgroundColor: theme.colors.overlay,
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 14,

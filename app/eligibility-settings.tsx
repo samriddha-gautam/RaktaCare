@@ -3,11 +3,10 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -15,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 // Nepal Red Cross Society eligibility criteria
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
@@ -81,6 +81,112 @@ const DEFAULT_DATA: EligibilityData = {
   maxTravelDistance: "10",
 };
 
+// --- Module-level sub-components (stable references prevent keyboard dismissal) ---
+
+const InputRow = ({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  unit,
+  keyboardType = "numeric",
+  isLast = false,
+  theme,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  unit?: string;
+  keyboardType?: "numeric" | "default";
+  isLast?: boolean;
+  theme: any;
+}) => (
+  <View
+    style={[
+      styles.inputRow,
+      {
+        borderBottomColor: theme.colors.border,
+        borderBottomWidth: isLast ? 0 : 1,
+      },
+    ]}
+  >
+    <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
+      {label}
+    </Text>
+    <View style={styles.inputRight}>
+      <TextInput
+        style={[
+          styles.textInput,
+          {
+            color: theme.colors.text,
+            backgroundColor: theme.colors.background,
+            borderColor: theme.colors.border,
+          },
+        ]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={theme.colors.textMuted}
+        keyboardType={keyboardType}
+      />
+      {unit && (
+        <Text style={[styles.unitText, { color: theme.colors.textSecondary }]}>
+          {unit}
+        </Text>
+      )}
+    </View>
+  </View>
+);
+
+const SwitchItem = ({
+  label,
+  subLabel,
+  value,
+  onValueChange,
+  trackColor,
+  isLast = false,
+  theme,
+}: {
+  label: string;
+  subLabel?: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+  trackColor: string;
+  isLast?: boolean;
+  theme: any;
+}) => (
+  <View
+    style={[
+      styles.conditionItem,
+      {
+        borderBottomColor: theme.colors.border,
+        borderBottomWidth: isLast ? 0 : 1,
+      },
+    ]}
+  >
+    <View style={styles.conditionTextContainer}>
+      <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
+        {label}
+      </Text>
+      {subLabel && (
+        <Text style={[styles.waitText, { color: theme.colors.textSecondary }]}>
+           {subLabel}
+        </Text>
+      )}
+    </View>
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{
+        false: theme.colors.border,
+        true: trackColor,
+      }}
+      thumbColor={value ? "#fff" : "#f4f3f4"}
+    />
+  </View>
+);
+
 const EligibilitySettings: React.FC = () => {
   const { theme } = useTheme();
   const globalStyles = createGlobalStyles(theme);
@@ -129,9 +235,9 @@ const EligibilitySettings: React.FC = () => {
     }
   };
 
-  const updateField = (field: keyof EligibilityData, value: any) => {
+  const updateField = useCallback((field: keyof EligibilityData, value: any) => {
     setData((prev) => ({ ...prev, [field]: value }));
-  };
+  }, []);
 
   const togglePermanentCondition = (id: string) => {
     setData((prev) => ({
@@ -244,106 +350,6 @@ const EligibilitySettings: React.FC = () => {
 
   const statusConfig = getStatusConfig();
 
-  const InputRow = ({
-    label,
-    value,
-    onChangeText,
-    placeholder,
-    unit,
-    keyboardType = "numeric",
-    isLast = false
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    unit?: string;
-    keyboardType?: "numeric" | "default";
-    isLast?: boolean;
-  }) => (
-    <View
-      style={[
-        styles.inputRow,
-        {
-          borderBottomColor: theme.colors.border,
-          borderBottomWidth: isLast ? 0 : 1,
-        },
-      ]}
-    >
-      <Text style={[styles.inputLabel, { color: theme.colors.text }]}>
-        {label}
-      </Text>
-      <View style={styles.inputRight}>
-        <TextInput
-          style={[
-            styles.textInput,
-            {
-              color: theme.colors.text,
-              backgroundColor: theme.colors.background,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          placeholderTextColor={theme.colors.textMuted}
-          keyboardType={keyboardType}
-        />
-        {unit && (
-          <Text style={[styles.unitText, { color: theme.colors.textSecondary }]}>
-            {unit}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-
-  const SwitchItem = ({
-    label,
-    subLabel,
-    value,
-    onValueChange,
-    trackColor,
-    isLast = false,
-  }: {
-    label: string;
-    subLabel?: string;
-    value: boolean;
-    onValueChange: (v: boolean) => void;
-    trackColor: string;
-    isLast?: boolean;
-  }) => (
-    <View
-      style={[
-        styles.conditionItem,
-        {
-          borderBottomColor: theme.colors.border,
-          borderBottomWidth: isLast ? 0 : 1,
-        },
-      ]}
-    >
-      <View style={styles.conditionTextContainer}>
-        <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
-          {label}
-        </Text>
-        {subLabel && (
-          <Text style={[styles.waitText, { color: theme.colors.textSecondary }]}>
-             {subLabel}
-          </Text>
-        )}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{
-          false: theme.colors.border,
-          true: trackColor,
-        }}
-        thumbColor={value ? "#fff" : "#f4f3f4"}
-      />
-    </View>
-  );
-
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={globalStyles.container}>
@@ -365,7 +371,12 @@ const EligibilitySettings: React.FC = () => {
 
   return (
     <SafeAreaView style={globalStyles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <KeyboardAwareScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={100}
+      >
         {/* Header */}
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
@@ -456,6 +467,7 @@ const EligibilitySettings: React.FC = () => {
                 onChangeText={(v) => updateField("age", v)}
                 placeholder="18-60"
                 unit="years"
+                theme={theme}
             />
             <InputRow
                 label="Weight"
@@ -463,6 +475,7 @@ const EligibilitySettings: React.FC = () => {
                 onChangeText={(v) => updateField("weight", v)}
                 placeholder="Min 45"
                 unit="kg"
+                theme={theme}
             />
             <InputRow
                 label="Hemoglobin"
@@ -471,6 +484,7 @@ const EligibilitySettings: React.FC = () => {
                 placeholder="Min 12"
                 unit="gm/dl"
                 isLast={true}
+                theme={theme}
             />
           </View>
 
@@ -496,6 +510,7 @@ const EligibilitySettings: React.FC = () => {
                 value={data.systolicBP}
                 onChangeText={(v) => updateField("systolicBP", v)}
                 placeholder="110-160"
+                theme={theme}
             />
             <InputRow
                 label="Diastolic"
@@ -503,6 +518,7 @@ const EligibilitySettings: React.FC = () => {
                 onChangeText={(v) => updateField("diastolicBP", v)}
                 placeholder="70-96"
                 isLast={true}
+                theme={theme}
             />
           </View>
         </View>
@@ -521,6 +537,7 @@ const EligibilitySettings: React.FC = () => {
                     onValueChange={() => togglePermanentCondition(c.id)}
                     trackColor={theme.colors.danger}
                     isLast={i === MEDICAL_CONDITIONS.length - 1}
+                    theme={theme}
                 />
              ))}
           </View>
@@ -541,6 +558,7 @@ const EligibilitySettings: React.FC = () => {
                     onValueChange={() => toggleTemporaryCondition(c.id)}
                     trackColor={theme.colors.warning}
                     isLast={i === TEMPORARY_CONDITIONS.length - 1}
+                    theme={theme}
                 />
              ))}
           </View>
@@ -558,6 +576,7 @@ const EligibilitySettings: React.FC = () => {
                 value={data.availableForEmergency}
                 onValueChange={(v) => updateField("availableForEmergency", v)}
                 trackColor={theme.colors.primary}
+                theme={theme}
              />
              <SwitchItem
                 label="Willing to Travel"
@@ -566,6 +585,7 @@ const EligibilitySettings: React.FC = () => {
                 onValueChange={(v) => updateField("willingToTravel", v)}
                 trackColor={theme.colors.primary}
                 isLast={!data.willingToTravel}
+                theme={theme}
              />
              {data.willingToTravel && (
                 <InputRow
@@ -575,6 +595,7 @@ const EligibilitySettings: React.FC = () => {
                     placeholder="10"
                     unit="km"
                     isLast={true}
+                    theme={theme}
                 />
              )}
           </View>
@@ -593,7 +614,7 @@ const EligibilitySettings: React.FC = () => {
         </Text>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

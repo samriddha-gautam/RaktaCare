@@ -1,20 +1,25 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
+import { uploadProfilePhotoAsync } from "@/services/firebase/profilePhoto";
 import { createGlobalStyles, Theme } from "@/styles/globalStyles";
+import * as ImageManipulator from "expo-image-manipulator";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Image,
     SafeAreaView,
-    ScrollView,
     StyleSheet,
+    Switch,
     Text,
     TextInput,
     TouchableOpacity,
     View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -80,6 +85,7 @@ const EditProfile: React.FC = () => {
   const router = useRouter();
   const { user, profileData, setProfileData } = useAuth();
   const { updateUserProfile, loading } = useAuthActions();
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   // Form state — pre-filled from profileData
   const [displayName, setDisplayName] = useState(
@@ -116,6 +122,48 @@ const EditProfile: React.FC = () => {
     emergencyPhone,
     profileData,
   ]);
+
+  const pickAndUploadPhoto = async () => {
+    try {
+      setPhotoUploading(true);
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert("Permission required", "Please allow photo library access.");
+        return;
+      }
+
+      // @ts-ignore - Handle deprecation warning while ensuring compatibility
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.9,
+      });
+
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+
+      const asset = result.assets[0];
+      const manipulated = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 512, height: 512 } }],
+        { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
+      );
+
+      const { downloadURL } = await uploadProfilePhotoAsync({
+        uri: manipulated.uri,
+        mimeType: "image/jpeg",
+      });
+
+      const next = { ...(profileData || {}), photoURL: downloadURL };
+      await setProfileData(next);
+      Alert.alert("✅ Updated", "Profile photo updated successfully.");
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert("Upload failed", e?.message || "Could not upload photo.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!displayName.trim()) {
@@ -188,10 +236,11 @@ const EditProfile: React.FC = () => {
 
   return (
     <SafeAreaView style={globalStyles.container}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={100}
       >
         {/* Header */}
         <View style={styles.headerRow}>
@@ -223,23 +272,42 @@ const EditProfile: React.FC = () => {
           Update your personal and donation information
         </Text>
 
-        {/* Avatar Preview */}
+        {/* Avatar Preview & Upload */}
         <View style={styles.avatarSection}>
-          <View
-            style={[
-              styles.avatar,
-              { backgroundColor: theme.colors.primaryLight },
-            ]}
+          <TouchableOpacity 
+            style={styles.avatarWrapper} 
+            onPress={pickAndUploadPhoto} 
+            disabled={photoUploading}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.avatarText, { color: theme.colors.primary }]}>
-              {displayName
-                ? displayName.charAt(0).toUpperCase()
-                : user?.email?.charAt(0).toUpperCase() || "?"}
+            <View style={[styles.avatar, { backgroundColor: theme.colors.primaryLight }]}>
+              {profileData?.photoURL ? (
+                <Image source={{ uri: profileData.photoURL }} style={styles.avatarImage} />
+              ) : (
+                <Text style={[styles.avatarText, { color: theme.colors.primary }]}>
+                  {displayName
+                    ? displayName.charAt(0).toUpperCase()
+                    : user?.email?.charAt(0).toUpperCase() || "?"}
+                </Text>
+              )}
+              {photoUploading && (
+                <View style={styles.avatarOverlay}>
+                  <ActivityIndicator color="#fff" />
+                </View>
+              )}
+            </View>
+            <View style={[styles.cameraBadge, { backgroundColor: theme.colors.primary }]}>
+               <Text style={styles.cameraIcon}>📸</Text>
+            </View>
+          </TouchableOpacity>
+          
+          <TouchableOpacity onPress={pickAndUploadPhoto} disabled={photoUploading}>
+            <Text style={[styles.changePhotoText, { color: theme.colors.primary }]}>
+              {photoUploading ? "Uploading..." : "Change Profile Photo"}
             </Text>
-          </View>
-          <Text
-            style={[styles.avatarEmail, { color: theme.colors.textSecondary }]}
-          >
+          </TouchableOpacity>
+
+          <Text style={[styles.avatarEmail, { color: theme.colors.textSecondary }]}>
             {user?.email || profileData?.email || ""}
           </Text>
         </View>
@@ -485,7 +553,7 @@ const EditProfile: React.FC = () => {
         </View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };
@@ -608,6 +676,46 @@ const styles = StyleSheet.create({
   accountLabel: { fontSize: 14, fontWeight: "500" },
   accountValue: { fontSize: 13, fontWeight: "600" },
   accountDivider: { height: 1 },
+  avatarWrapper: {
+    position: "relative",
+    marginBottom: 12,
+  },
+  avatarImage: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+  },
+  avatarOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    borderRadius: 42,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cameraBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#fff",
+  },
+  cameraIcon: {
+    fontSize: 14,
+  },
+  changePhotoText: {
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 10,
+  },
 });
 
 export default EditProfile;

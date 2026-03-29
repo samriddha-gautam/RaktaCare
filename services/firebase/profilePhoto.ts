@@ -5,7 +5,7 @@ import {
   deleteObject,
   getDownloadURL,
   ref,
-  uploadBytes,
+  uploadBytesResumable,
 } from "firebase/storage";
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png"]);
@@ -14,20 +14,16 @@ function getAvatarPath(uid: string) {
   return `profilePhotos/${uid}/avatar.jpg`;
 }
 
-// ✅ More reliable in Expo/React Native for file:// URIs
-function uriToBlob(uri: string): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    try {
-      const xhr = new XMLHttpRequest();
-      xhr.onload = () => resolve(xhr.response);
-      xhr.onerror = () => reject(new TypeError("uriToBlob failed"));
-      xhr.responseType = "blob";
-      xhr.open("GET", uri, true);
-      xhr.send(null);
-    } catch (e) {
-      reject(e);
-    }
-  });
+// ✅ Robust version using fetch() which is recommended in modern Expo/React Native
+// for handling local file:// URIs.
+async function uriToBlob(uri: string): Promise<Blob> {
+  try {
+    const response = await fetch(uri);
+    return await response.blob();
+  } catch (error) {
+    console.error("fetch uriToBlob failed:", error);
+    throw new Error("Could not convert image to blob for upload.");
+  }
 }
 
 export async function uploadProfilePhotoAsync(params: {
@@ -47,12 +43,28 @@ export async function uploadProfilePhotoAsync(params: {
   const storageRef = ref(storage, getAvatarPath(user.uid));
 
   try {
-    // We compress to JPEG in ProfileView, so contentType should be image/jpeg
-    await uploadBytes(storageRef, blob, { contentType: "image/jpeg" });
+    const metadata = {
+      contentType: "image/jpeg",
+    };
+
+    // uploadBytesResumable is more reliable than uploadBytes in React Native
+    // because it handles the Blob→network boundary via a streaming approach.
+    await new Promise<void>((resolve, reject) => {
+      const uploadTask = uploadBytesResumable(storageRef, blob, metadata);
+      uploadTask.on(
+        "state_changed",
+        () => {}, // progress – not needed here
+        (error) => {
+          console.error("UPLOAD ERROR code:", error?.code);
+          console.error("UPLOAD ERROR message:", error?.message);
+          reject(error);
+        },
+        () => resolve()
+      );
+    });
   } catch (e: any) {
-    console.log("UPLOAD ERROR code:", e?.code);
-    console.log("UPLOAD ERROR message:", e?.message);
-    console.log("UPLOAD ERROR serverResponse:", e?.serverResponse);
+    console.error("UPLOAD ERROR code:", e?.code);
+    console.error("UPLOAD ERROR message:", e?.message);
     throw e;
   }
 

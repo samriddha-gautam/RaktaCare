@@ -4,7 +4,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import React, { useEffect } from "react";
 import {
     Alert,
@@ -43,29 +43,33 @@ const Settings: React.FC = () => {
   const [donationReminders, setDonationReminders] = React.useState(false);
   const [locationServices, setLocationServices] = React.useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const notifEnabled = await readStoredFlag(
-        NOTIF_PREFS_KEY,
-        "notificationsEnabled",
-        false
-      );
-      const remindersEnabled = await readStoredFlag(
-        NOTIF_PREFS_KEY,
-        "donationRemindersEnabled",
-        false
-      );
-      const locEnabled = await readStoredFlag(
-        LOCATION_SETTINGS_KEY,
-        "locationEnabled",
-        false
-      );
+  const loadFlags = React.useCallback(async () => {
+    const notifEnabled = await readStoredFlag(
+      NOTIF_PREFS_KEY,
+      "notificationsEnabled",
+      false
+    );
+    const remindersEnabled = await readStoredFlag(
+      NOTIF_PREFS_KEY,
+      "donationRemindersEnabled",
+      false
+    );
+    const locEnabled = await readStoredFlag(
+      LOCATION_SETTINGS_KEY,
+      "locationEnabled",
+      false
+    );
 
-      setNotificationsEnabled(notifEnabled);
-      setDonationReminders(remindersEnabled);
-      setLocationServices(locEnabled);
-    })();
+    setNotificationsEnabled(notifEnabled);
+    setDonationReminders(remindersEnabled);
+    setLocationServices(locEnabled);
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadFlags();
+    }, [loadFlags])
+  );
 
   const SettingSection = ({
     title,
@@ -143,24 +147,28 @@ const Settings: React.FC = () => {
   };
 
   const handleToggleNotifications = async (value: boolean) => {
-    if (value) {
-      router.push("/notification-preferences");
-      return;
+    setNotificationsEnabled(value);
+    
+    // If turning off master notifications, also turn off dependent reminders
+    if (!value) {
+      setDonationReminders(false);
     }
-
-    setNotificationsEnabled(false);
-    setDonationReminders(false);
 
     try {
       const raw = await AsyncStorage.getItem(NOTIF_PREFS_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
+      
       const next = {
         ...parsed,
-        notificationsEnabled: false,
-        emergencyRequestsEnabled: false,
-        donationRemindersEnabled: false,
+        notificationsEnabled: value,
+        // If master is off, sub-settings should also be disabled in storage
+        ...(value === false ? {
+          emergencyRequestsEnabled: false,
+          donationRemindersEnabled: false,
+        } : {}),
         lastUpdatedAt: new Date().toISOString(),
       };
+      
       await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
     } catch (e) {
       console.log("Failed to persist notificationsEnabled", e);
@@ -190,17 +198,12 @@ const Settings: React.FC = () => {
   };
 
   const handleToggleLocationServices = async (value: boolean) => {
-    if (value) {
-      router.push("/location-services");
-      return;
-    }
-
-    setLocationServices(false);
+    setLocationServices(value);
 
     try {
       const raw = await AsyncStorage.getItem(LOCATION_SETTINGS_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      const next = { ...parsed, locationEnabled: false };
+      const next = { ...parsed, locationEnabled: value };
       await AsyncStorage.setItem(LOCATION_SETTINGS_KEY, JSON.stringify(next));
     } catch (e) {
       console.log("Failed to persist locationEnabled", e);

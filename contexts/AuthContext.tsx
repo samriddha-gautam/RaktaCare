@@ -6,7 +6,6 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 const STORAGE_KEYS = {
   USER: "@auth_user",
   PROFILE_DATA: "@profile_data",
-  // Keep the key if you want, but we will NOT use it as source of truth
   IS_AUTHENTICATED: "@is_authenticated",
 } as const;
 
@@ -83,15 +82,23 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
-  // ✅ Only load cached PROFILE data (do not set isAuthenticated from storage)
-  const loadPersistedProfileOnly = async () => {
+  // ✅ Optimistically load cached AUTH & PROFILE data (to keep UI looking logged in)
+  const loadPersistedAuthAndProfile = async () => {
     try {
+      // 1. Load Profile
       const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
       if (storedProfile) {
         setProfileDataState(JSON.parse(storedProfile));
       }
+      
+      // 2. Load Auth Status (prevent UI flicker before Firebase resolves)
+      const cachedAuth = await AsyncStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
+      if (cachedAuth === "true") {
+        setIsAuthenticated(true);
+        console.log("Found cached session state");
+      }
     } catch (error) {
-      console.error("Error loading persisted profile:", error);
+      console.error("Error loading persisted profile/auth:", error);
     }
   };
 
@@ -119,8 +126,8 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   };
 
   useEffect(() => {
-    // load cached profile while Firebase resolves auth session
-    loadPersistedProfileOnly();
+    // load cached profile and prev auth state while Firebase resolves auth session
+    loadPersistedAuthAndProfile();
   }, []);
 
   useEffect(() => {
@@ -142,6 +149,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
               email: firebaseUser.email || "",
               name: firebaseUser.displayName || "",
               displayName: firebaseUser.displayName || "",
+              photoURL: firebaseUser.photoURL || "",
             };
             await setProfileData(autoProfileData);
           } else {
@@ -153,8 +161,6 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
         setIsAuthenticated(false);
         setProfileDataState(null);
         await persistUserData(null);
-
-        // Optional: also remove profile cache on sign-out to avoid showing old data
         await AsyncStorage.removeItem(STORAGE_KEYS.PROFILE_DATA);
       }
 
@@ -162,8 +168,6 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     });
 
     return unsubscribe;
-    // IMPORTANT: do not include profileData in deps, otherwise effect can re-run unexpectedly
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const contextValue: AuthContextType = {

@@ -18,6 +18,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type AccuracyMode = "balanced" | "high";
 
@@ -113,16 +114,16 @@ const LocationServices: React.FC = () => {
           : "undetermined";
 
       const current = base ?? settings;
-
-      await save({
+      
+      // ✅ FIX: Do not overwrite the user preference in storage with device status.
+      // Only update the live state so the UI reflects the current reality,
+      // but keep the user's "desire" to have location enabled in AsyncStorage.
+      setSettings(prev => ({
+        ...prev,
         ...current,
         servicesEnabled,
         permissionStatus,
-        locationEnabled:
-          current.locationEnabled &&
-          servicesEnabled &&
-          permissionStatus === "granted",
-      });
+      }));
     } catch (e) {
       console.log("syncDeviceLocationStatus error", e);
     }
@@ -386,10 +387,11 @@ const LocationServices: React.FC = () => {
 
   return (
     <SafeAreaView style={globalStyles.container}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={100}
       >
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
@@ -497,7 +499,7 @@ const LocationServices: React.FC = () => {
         </View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 };

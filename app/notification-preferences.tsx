@@ -9,7 +9,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
     Alert,
     SafeAreaView,
-    ScrollView,
     StyleSheet,
     Switch,
     Text,
@@ -17,6 +16,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type NotificationPreferences = {
   notificationsEnabled: boolean;
@@ -176,7 +176,12 @@ export default function NotificationPreferencesScreen() {
 
   return (
     <SafeAreaView style={g.container}>
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView 
+        showsVerticalScrollIndicator={false} 
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={100}
+      >
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
             <Text style={[styles.back, { color: theme.colors.primary }]}>
@@ -330,7 +335,7 @@ export default function NotificationPreferencesScreen() {
         </View>
 
         <View style={{ height: 40 }} />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   );
 }

@@ -17,6 +17,7 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from "react-native";
 
 export default function ChangePasswordScreen() {
@@ -71,7 +72,6 @@ export default function ChangePasswordScreen() {
     try {
       setLoading(true);
 
-      // ✅ Firebase requires recent login for sensitive operations
       const credential = EmailAuthProvider.credential(email, currentPassword);
       await reauthenticateWithCredential(user, credential);
 
@@ -120,7 +120,7 @@ export default function ChangePasswordScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
           <Text style={[styles.back, { color: theme.colors.primary }]}>
             ← Back
           </Text>
@@ -130,11 +130,11 @@ export default function ChangePasswordScreen() {
           Change Password
         </Text>
         <Text style={[styles.sub, { color: theme.colors.textSecondary }]}>
-          Enter your current password and choose a new one.
+          Enter your current password and choose a new one for your security.
         </Text>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>
+          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
             Current Password
           </Text>
           <TextInput
@@ -151,12 +151,12 @@ export default function ChangePasswordScreen() {
               },
             ]}
             placeholder="Enter current password"
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={theme.colors.textMuted}
           />
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>
+          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
             New Password
           </Text>
           <TextInput
@@ -172,13 +172,13 @@ export default function ChangePasswordScreen() {
                 color: theme.colors.text,
               },
             ]}
-            placeholder="Enter new password (min 6 chars)"
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholder="Min 6 characters"
+            placeholderTextColor={theme.colors.textMuted}
           />
         </View>
 
         <View style={styles.section}>
-          <Text style={[styles.label, { color: theme.colors.text }]}>
+          <Text style={[styles.label, { color: theme.colors.textSecondary }]}>
             Confirm New Password
           </Text>
           <TextInput
@@ -195,28 +195,33 @@ export default function ChangePasswordScreen() {
               },
             ]}
             placeholder="Re-enter new password"
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={theme.colors.textMuted}
           />
         </View>
 
         <TouchableOpacity
           onPress={handleChangePassword}
           disabled={loading}
-          activeOpacity={0.9}
+          activeOpacity={0.8}
           style={[
             styles.btn,
             {
               backgroundColor: theme.colors.primary,
               opacity: loading ? 0.7 : 1,
+              ...(theme.shadow.md as any),
             },
           ]}
         >
-          <Text style={styles.btnText}>
-            {loading ? "Updating..." : "Update Password"}
-          </Text>
+          {loading ? (
+             <ActivityIndicator color={theme.colors.white} />
+          ) : (
+            <Text style={[styles.btnText, { color: theme.colors.white }]}>
+               Update Password
+            </Text>
+          )}
         </TouchableOpacity>
 
-        <View style={{ height: 24 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -224,23 +229,23 @@ export default function ChangePasswordScreen() {
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 20, paddingBottom: 40, paddingTop: 10 },
-  back: { fontSize: 16, fontWeight: "700", marginBottom: 10 },
-  title: { fontSize: 24, fontWeight: "900" },
-  sub: { marginTop: 6, marginBottom: 18, fontSize: 13, lineHeight: 18 },
-  section: { marginBottom: 14 },
-  label: { fontSize: 14, fontWeight: "700", marginBottom: 8 },
+  back: { fontSize: 16, fontWeight: "700", marginBottom: 12 },
+  title: { fontSize: 28, fontWeight: "bold" },
+  sub: { marginTop: 4, marginBottom: 28, fontSize: 14, lineHeight: 20 },
+  section: { marginBottom: 20 },
+  label: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 },
   input: {
     borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
   },
   btn: {
     marginTop: 10,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 14,
+    paddingVertical: 16,
     alignItems: "center",
   },
-  btnText: { color: "#fff", fontWeight: "900", fontSize: 16 },
+  btnText: { fontWeight: "700", fontSize: 16 },
 });

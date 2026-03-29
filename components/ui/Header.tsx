@@ -18,7 +18,7 @@ import {
   View,
 } from "react-native";
 
-export const DEFAULT_HEADER_HEIGHT = 150;
+export const DEFAULT_HEADER_HEIGHT = 120;
 
 interface HeaderProps {
   headerHeight?: number;
@@ -53,7 +53,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
     const { theme } = useTheme();
     const { profileData } = useAuth();
 
-    const userName = profileData?.displayName || "Guest";
+    const userName = profileData?.displayName || profileData?.name || "Guest";
     const userImageUri = profileData?.photoURL;
     const scrollY = useRef(new Animated.Value(0)).current;
     const headerTranslateY = useRef(new Animated.Value(0)).current;
@@ -144,15 +144,20 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
       [handleScroll, hideHeader, showHeader, resetHeader]
     );
 
+    // Derive the initial letter for the fallback avatar
+    const initial = (userName?.[0] || "G").toUpperCase();
+    const hasPhoto = Boolean(userImageUri);
+
     return (
       <Animated.View
         style={[
           styles.header,
           {
             backgroundColor: theme.colors.background,
-            borderBottomColor: theme.colors.border || "#e0e0e0",
+            borderBottomColor: theme.colors.border,
             height: headerHeight,
             transform: [{ translateY: headerTranslateY }],
+            ...(theme.shadow.md as any),
           },
         ]}
       >
@@ -160,19 +165,44 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
           <TouchableOpacity
             style={styles.profileSection}
             onPress={navigateToProfile}
+            activeOpacity={0.7}
           >
-            <Image source={{ uri: userImageUri }} style={styles.profileImage} />
-            <Text style={[styles.userName, { color: theme.colors.text }]}>
-              {userName}
-            </Text>
+            {/* ✅ FIX: only render <Image> when we have a valid URI */}
+            {hasPhoto ? (
+              <Image
+                source={{ uri: userImageUri! }}
+                style={[
+                  styles.profileImage,
+                  { borderColor: theme.colors.border },
+                ]}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.profileImage,
+                  styles.profileFallback,
+                  { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.border },
+                ]}
+              >
+                <Text style={[styles.profileInitial, { color: theme.colors.primary }]}>
+                  {initial}
+                </Text>
+              </View>
+            )}
+            <View>
+              <Text style={[styles.greeting, { color: theme.colors.textSecondary }]}>
+                Welcome back
+              </Text>
+              <Text style={[styles.userName, { color: theme.colors.text }]}>
+                {userName}
+              </Text>
+            </View>
           </TouchableOpacity>
         </View>
       </Animated.View>
     );
   }
 );
-
-// Header.displayName = "Header";
 
 const styles = StyleSheet.create({
   header: {
@@ -182,38 +212,41 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 1000,
     borderBottomWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
   headerContent: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   profileSection: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 14,
   },
   profileImage: {
-    width: 55,
-    height: 55,
-    borderRadius: 100,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     borderWidth: 2,
-    borderColor: "#e0e0e0",
+  },
+  profileFallback: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  profileInitial: {
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  greeting: {
+    fontSize: 13,
+    fontWeight: "500",
   },
   userName: {
-    fontSize: 16,
-    fontWeight: "bold",
+    fontSize: 17,
+    fontWeight: "700",
   },
 });
 

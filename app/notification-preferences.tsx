@@ -22,17 +22,11 @@ type NotificationPreferences = {
   notificationsEnabled: boolean;
   emergencyRequestsEnabled: boolean;
   donationRemindersEnabled: boolean;
-
-  // Donor matching preferences
   matchOnlyMyBloodGroup: boolean;
   maxDistanceKm: number;
-
-  // Quiet hours (optional)
   quietHoursEnabled: boolean;
-  quietHoursStart: string; // "22:00"
-  quietHoursEnd: string; // "07:00"
-
-  // Diagnostics
+  quietHoursStart: string;
+  quietHoursEnd: string;
   lastUpdatedAt?: string;
 };
 
@@ -83,14 +77,7 @@ export default function NotificationPreferencesScreen() {
         doc(db, "users", user.uid),
         {
           notificationPreferences: {
-            notificationsEnabled: next.notificationsEnabled,
-            emergencyRequestsEnabled: next.emergencyRequestsEnabled,
-            donationRemindersEnabled: next.donationRemindersEnabled,
-            matchOnlyMyBloodGroup: next.matchOnlyMyBloodGroup,
-            maxDistanceKm: next.maxDistanceKm,
-            quietHoursEnabled: next.quietHoursEnabled,
-            quietHoursStart: next.quietHoursStart,
-            quietHoursEnd: next.quietHoursEnd,
+            ...next,
             lastUpdatedAt: next.lastUpdatedAt ?? new Date().toISOString(),
           },
           updatedAt: new Date().toISOString(),
@@ -115,15 +102,12 @@ export default function NotificationPreferencesScreen() {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (!raw) return;
-
         const parsed = JSON.parse(raw);
-
         const merged: NotificationPreferences = {
           ...DEFAULT_PREFS,
           ...parsed,
           maxDistanceKm: clamp(Number(parsed.maxDistanceKm ?? 10), 1, 200),
         };
-
         setPrefs(merged);
         setDistanceInput(String(merged.maxDistanceKm));
       } catch (e) {
@@ -132,49 +116,42 @@ export default function NotificationPreferencesScreen() {
     })();
   }, []);
 
-  const statusCard = useMemo(() => {
+  const statusConfig = useMemo(() => {
     if (!isAuthenticated) {
       return {
-        color: "#EF4444",
+        color: theme.colors.danger,
+        bg: theme.colors.dangerLight,
         title: "Login required",
-        subtitle:
-          "Login to sync notification preferences across devices and use real-time matching.",
+        subtitle: "Login to sync preferences and matching.",
         emoji: "🔒",
       };
     }
-
     if (!prefs.notificationsEnabled) {
       return {
-        color: "#EF4444",
-        title: "Notifications are OFF",
-        subtitle:
-          "Enable notifications to receive emergency requests and donation reminders.",
+        color: theme.colors.danger,
+        bg: theme.colors.dangerLight,
+        title: "Notifications OFF",
+        subtitle: "Enable to receive emergency matched requests.",
         emoji: "🔕",
       };
     }
-
     if (!prefs.emergencyRequestsEnabled && !prefs.donationRemindersEnabled) {
       return {
-        color: "#F59E0B",
-        title: "No alerts enabled",
-        subtitle:
-          "Turn on Emergency Requests or Donation Reminders to receive alerts.",
+        color: theme.colors.warning,
+        bg: theme.colors.warningLight,
+        title: "No alerts active",
+        subtitle: "Turn on at least one alert type below.",
         emoji: "⚠️",
       };
     }
-
     return {
-      color: "#22C55E",
-      title: "Notifications are ON",
-      subtitle: "Your preferences will be used for real-time donor matching.",
+      color: theme.colors.success,
+      bg: theme.colors.successLight,
+      title: "Notifications ON",
+      subtitle: "Preferences active for donor matching.",
       emoji: "✅",
     };
-  }, [
-    isAuthenticated,
-    prefs.notificationsEnabled,
-    prefs.emergencyRequestsEnabled,
-    prefs.donationRemindersEnabled,
-  ]);
+  }, [isAuthenticated, prefs, theme]);
 
   const applyDistance = async () => {
     const parsed = Number(distanceInput);
@@ -199,12 +176,9 @@ export default function NotificationPreferencesScreen() {
 
   return (
     <SafeAreaView style={g.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
+      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
             <Text style={[styles.back, { color: theme.colors.primary }]}>
               ← Back
             </Text>
@@ -212,266 +186,146 @@ export default function NotificationPreferencesScreen() {
         </View>
 
         <Text style={[styles.header, { color: theme.colors.text }]}>
-          Notification Preferences
+          Notification Prefs
         </Text>
-
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-          Control which alerts you receive and how donor matching works.
+          Choose how and when RaktaCare notifies you for requests.
         </Text>
 
-        <View
-          style={[
-            styles.statusCard,
-            { backgroundColor: statusCard.color + "15" },
-          ]}
-        >
-          <Text style={styles.statusEmoji}>{statusCard.emoji}</Text>
-          <Text style={[styles.statusTitle, { color: statusCard.color }]}>
-            {statusCard.title}
-          </Text>
-          <Text
-            style={[styles.statusSubtitle, { color: theme.colors.textSecondary }]}
-          >
-            {statusCard.subtitle}
-          </Text>
+        {/* Status Card */}
+        <View style={[styles.statusCard, { backgroundColor: statusConfig.bg }]}>
+          <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
+          <Text style={[styles.statusTitle, { color: statusConfig.color }]}>{statusConfig.title}</Text>
+          <Text style={[styles.statusSubtitle, { color: theme.colors.textSecondary }]}>{statusConfig.subtitle}</Text>
         </View>
 
-        {/* MASTER TOGGLE */}
+        {/* Categories Group */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            General
-          </Text>
-
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border },
-            ]}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>
-                Enable Notifications
-              </Text>
-              <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>
-                Master toggle for all alerts inside RaktaCare.
-              </Text>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Category Controls</Text>
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View style={[styles.row, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
+               <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Master Toggle</Text>
+                  <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>Main switch for all notifications</Text>
+               </View>
+               <Switch
+                  value={prefs.notificationsEnabled}
+                  onValueChange={(v) => save({ ...prefs, notificationsEnabled: v, emergencyRequestsEnabled: v ? prefs.emergencyRequestsEnabled : false, donationRemindersEnabled: v ? prefs.donationRemindersEnabled : false })}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={prefs.notificationsEnabled ? "#fff" : "#f4f3f4"}
+               />
             </View>
-
-            <Switch
-              value={prefs.notificationsEnabled}
-              onValueChange={(v) =>
-                save({
-                  ...prefs,
-                  notificationsEnabled: v,
-                  // If master off -> turn off all categories
-                  emergencyRequestsEnabled: v ? prefs.emergencyRequestsEnabled : false,
-                  donationRemindersEnabled: v ? prefs.donationRemindersEnabled : false,
-                })
-              }
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={prefs.notificationsEnabled ? "#fff" : "#f4f3f4"}
-            />
-          </View>
-        </View>
-
-        {/* CATEGORIES */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Alert Types
-          </Text>
-
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border },
-            ]}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>
-                Emergency Requests
-              </Text>
-              <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>
-                Get notified when someone needs blood near you.
-              </Text>
+            <View style={[styles.row, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
+               <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Emergency Alerts</Text>
+                  <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>Nearby urgent blood requests</Text>
+               </View>
+               <Switch
+                  value={prefs.emergencyRequestsEnabled}
+                  onValueChange={(v) => {
+                    if (!prefs.notificationsEnabled && v) {
+                       Alert.alert("Enable Master", "Turn on notifications master switch first.");
+                       return;
+                    }
+                    save({ ...prefs, emergencyRequestsEnabled: v });
+                  }}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={prefs.emergencyRequestsEnabled ? "#fff" : "#f4f3f4"}
+                  disabled={!prefs.notificationsEnabled}
+               />
             </View>
-
-            <Switch
-              value={prefs.emergencyRequestsEnabled}
-              onValueChange={(v) => {
-                if (!prefs.notificationsEnabled && v) {
-                  Alert.alert("Enable Notifications", "Turn on notifications first.");
-                  return;
-                }
-                save({ ...prefs, emergencyRequestsEnabled: v });
-              }}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={prefs.emergencyRequestsEnabled ? "#fff" : "#f4f3f4"}
-              disabled={!prefs.notificationsEnabled}
-            />
-          </View>
-
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border },
-            ]}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>
-                Donation Reminders
-              </Text>
-              <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>
-                Reminders based on your donation schedule.
-              </Text>
+            <View style={styles.row}>
+               <View style={{ flex: 1 }}>
+                  <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Reminders</Text>
+                  <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>Your donation schedule updates</Text>
+               </View>
+               <Switch
+                  value={prefs.donationRemindersEnabled}
+                  onValueChange={(v) => {
+                    if (!prefs.notificationsEnabled && v) {
+                       Alert.alert("Enable Master", "Turn on notifications master switch first.");
+                       return;
+                    }
+                    save({ ...prefs, donationRemindersEnabled: v });
+                  }}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor={prefs.donationRemindersEnabled ? "#fff" : "#f4f3f4"}
+                  disabled={!prefs.notificationsEnabled}
+               />
             </View>
-
-            <Switch
-              value={prefs.donationRemindersEnabled}
-              onValueChange={(v) => {
-                if (!prefs.notificationsEnabled && v) {
-                  Alert.alert("Enable Notifications", "Turn on notifications first.");
-                  return;
-                }
-                save({ ...prefs, donationRemindersEnabled: v });
-              }}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={prefs.donationRemindersEnabled ? "#fff" : "#f4f3f4"}
-              disabled={!prefs.notificationsEnabled}
-            />
           </View>
         </View>
 
-        {/* MATCHING */}
+        {/* Matching Group */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Matching
-          </Text>
-
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border },
-            ]}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>
-                Only my blood group
-              </Text>
-              <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>
-                If enabled, you will only get requests matching your donor blood group.
-              </Text>
-            </View>
-
-            <Switch
-              value={prefs.matchOnlyMyBloodGroup}
-              onValueChange={(v) => save({ ...prefs, matchOnlyMyBloodGroup: v })}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={prefs.matchOnlyMyBloodGroup ? "#fff" : "#f4f3f4"}
-            />
-          </View>
-
-          <View
-            style={[
-              styles.radiusRow,
-              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-            ]}
-          >
-            <Text style={[styles.radiusLabel, { color: theme.colors.text }]}>
-              Max distance (km)
-            </Text>
-
-            <TextInput
-              value={distanceInput}
-              onChangeText={setDistanceInput}
-              placeholder="10"
-              placeholderTextColor={theme.colors.textSecondary + "80"}
-              keyboardType="numeric"
-              style={[
-                styles.radiusInput,
-                {
-                  color: theme.colors.text,
-                  borderColor: theme.colors.border,
-                  backgroundColor: theme.colors.background,
-                },
-              ]}
-              onBlur={applyDistance}
-              returnKeyType="done"
-              onSubmitEditing={applyDistance}
-            />
+          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Matching Filters</Text>
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+             <View style={[styles.row, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
+                <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: theme.colors.text }]}>My Blood Only</Text>
+                    <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>Only show matching blood groups</Text>
+                </View>
+                <Switch
+                    value={prefs.matchOnlyMyBloodGroup}
+                    onValueChange={(v) => save({ ...prefs, matchOnlyMyBloodGroup: v })}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                    thumbColor={prefs.matchOnlyMyBloodGroup ? "#fff" : "#f4f3f4"}
+                />
+             </View>
+             <View style={styles.radiusRow}>
+                <Text style={[styles.radiusLabel, { color: theme.colors.text }]}>Max Distance</Text>
+                <View style={styles.inputWrapper}>
+                    <TextInput
+                        value={distanceInput}
+                        onChangeText={setDistanceInput}
+                        keyboardType="numeric"
+                        onBlur={applyDistance}
+                        style={[styles.radiusInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}
+                    />
+                    <Text style={[styles.unitText, { color: theme.colors.textSecondary }]}>km</Text>
+                </View>
+             </View>
           </View>
         </View>
 
-        {/* QUIET HOURS */}
+        {/* Quiet Hours Group */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Quiet Hours
-          </Text>
-
-          <View
-            style={[
-              styles.row,
-              { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border },
-            ]}
-          >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={[styles.rowTitle, { color: theme.colors.text }]}>
-                Enable Quiet Hours
-              </Text>
-              <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>
-                Reduce interruptions during sleep or work.
-              </Text>
-            </View>
-
-            <Switch
-              value={prefs.quietHoursEnabled}
-              onValueChange={(v) => save({ ...prefs, quietHoursEnabled: v })}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={prefs.quietHoursEnabled ? "#fff" : "#f4f3f4"}
-            />
-          </View>
-
-          <View style={styles.timeRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
-                Start (HH:MM)
-              </Text>
-              <TextInput
-                value={prefs.quietHoursStart}
-                onChangeText={(t) => save({ ...prefs, quietHoursStart: t })}
-                onBlur={() => setTime("quietHoursStart", prefs.quietHoursStart)}
-                placeholder="22:00"
-                placeholderTextColor={theme.colors.textSecondary + "80"}
-                style={[
-                  styles.timeInput,
-                  {
-                    color: theme.colors.text,
-                    borderColor: theme.colors.border,
-                    backgroundColor: theme.colors.surface,
-                  },
-                ]}
-              />
-            </View>
-            <View style={{ width: 12 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>
-                End (HH:MM)
-              </Text>
-              <TextInput
-                value={prefs.quietHoursEnd}
-                onChangeText={(t) => save({ ...prefs, quietHoursEnd: t })}
-                onBlur={() => setTime("quietHoursEnd", prefs.quietHoursEnd)}
-                placeholder="07:00"
-                placeholderTextColor={theme.colors.textSecondary + "80"}
-                style={[
-                  styles.timeInput,
-                  {
-                    color: theme.colors.text,
-                    borderColor: theme.colors.border,
-                    backgroundColor: theme.colors.surface,
-                  },
-                ]}
-              />
-            </View>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Quiet Hours</Text>
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+             <View style={[styles.row, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
+                <View style={{ flex: 1 }}>
+                    <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Enable Quiet Hours</Text>
+                    <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>No alerts during sleep or work</Text>
+                </View>
+                <Switch
+                    value={prefs.quietHoursEnabled}
+                    onValueChange={(v) => save({ ...prefs, quietHoursEnabled: v })}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                    thumbColor={prefs.quietHoursEnabled ? "#fff" : "#f4f3f4"}
+                />
+             </View>
+             {prefs.quietHoursEnabled && (
+                 <View style={styles.timeRow}>
+                    <View style={styles.timeGroup}>
+                        <Text style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>Start Time</Text>
+                        <TextInput
+                            value={prefs.quietHoursStart}
+                            onChangeText={(t) => save({ ...prefs, quietHoursStart: t })}
+                            placeholder="22:00"
+                            style={[styles.timeInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}
+                        />
+                    </View>
+                    <View style={styles.timeGroup}>
+                        <Text style={[styles.timeLabel, { color: theme.colors.textSecondary }]}>End Time</Text>
+                        <TextInput
+                            value={prefs.quietHoursEnd}
+                            onChangeText={(t) => save({ ...prefs, quietHoursEnd: t })}
+                            placeholder="07:00"
+                            style={[styles.timeInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}
+                        />
+                    </View>
+                 </View>
+             )}
           </View>
         </View>
 
@@ -483,69 +337,31 @@ export default function NotificationPreferencesScreen() {
 
 const styles = StyleSheet.create({
   headerRow: { paddingHorizontal: 20, paddingTop: 10 },
-  back: { fontSize: 16, fontWeight: "600" },
-
+  back: { fontSize: 16, fontWeight: "700" },
   header: { fontSize: 28, fontWeight: "bold", marginHorizontal: 20, marginTop: 10 },
-  subtitle: { fontSize: 14, marginHorizontal: 20, marginBottom: 20, marginTop: 10 },
+  subtitle: { fontSize: 14, marginHorizontal: 20, marginBottom: 20, marginTop: 4 },
 
-  statusCard: {
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 22,
-    marginBottom: 24,
-    alignItems: "center",
-  },
-  statusEmoji: { fontSize: 30, marginBottom: 8 },
-  statusTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
-  statusSubtitle: { fontSize: 13, textAlign: "center", marginTop: 6, lineHeight: 18 },
+  statusCard: { marginHorizontal: 20, borderRadius: 16, padding: 24, marginBottom: 28, alignItems: "center" },
+  statusEmoji: { fontSize: 36, marginBottom: 8 },
+  statusTitle: { fontSize: 18, fontWeight: "800", textAlign: "center" },
+  statusSubtitle: { fontSize: 13, textAlign: "center", marginTop: 4, opacity: 0.8 },
 
-  section: { marginBottom: 24 },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginHorizontal: 20,
-    marginBottom: 8,
-  },
+  section: { marginBottom: 28 },
+  sectionTitle: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginHorizontal: 20, marginBottom: 10, opacity: 0.8 },
+  groupCard: { marginHorizontal: 20, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-  },
-  rowTitle: { fontSize: 16, fontWeight: "500" },
-  rowDesc: { fontSize: 12, marginTop: 2, lineHeight: 16 },
+  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
+  rowTitle: { fontSize: 16, fontWeight: "600" },
+  rowDesc: { fontSize: 12, marginTop: 2, opacity: 0.7 },
 
-  radiusRow: {
-    marginHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 14,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  radiusLabel: { fontSize: 16, fontWeight: "500" },
-  radiusInput: {
-    width: 90,
-    height: 38,
-    borderRadius: 10,
-    borderWidth: 1,
-    textAlign: "center",
-    fontSize: 15,
-  },
+  radiusRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
+  radiusLabel: { fontSize: 16, fontWeight: "600" },
+  inputWrapper: { flexDirection: "row", alignItems: "center" },
+  radiusInput: { width: 60, height: 38, borderRadius: 8, borderWidth: 1, textAlign: "center", fontSize: 15 },
+  unitText: { fontSize: 14, marginLeft: 8 },
 
-  timeRow: { flexDirection: "row", paddingHorizontal: 20, marginTop: 10 },
-  timeLabel: { fontSize: 12, fontWeight: "700", marginBottom: 6 },
-  timeInput: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-  },
+  timeRow: { flexDirection: "row", padding: 16, gap: 16 },
+  timeGroup: { flex: 1 },
+  timeLabel: { fontSize: 12, fontWeight: "700", marginBottom: 6, textTransform: "uppercase" },
+  timeInput: { borderRadius: 8, borderWidth: 1, paddingVertical: 10, paddingHorizontal: 12, textAlign: "center", fontSize: 15 },
 });

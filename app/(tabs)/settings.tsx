@@ -6,7 +6,16 @@ import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { Alert, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import {
+    Alert,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    Switch,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
 
 const NOTIF_PREFS_KEY = "notificationPreferences";
 const LOCATION_SETTINGS_KEY = "locationSettings";
@@ -30,15 +39,12 @@ const Settings: React.FC = () => {
 
   const { logout, loading: authLoading } = useAuthActions();
 
-  // ✅ Do NOT default push notifications ON.
-  // We default OFF in UI until we read the real stored prefs.
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
   const [donationReminders, setDonationReminders] = React.useState(false);
   const [locationServices, setLocationServices] = React.useState(false);
 
   useEffect(() => {
     (async () => {
-      // If nothing stored yet, keep them OFF (false)
       const notifEnabled = await readStoredFlag(
         NOTIF_PREFS_KEY,
         "notificationsEnabled",
@@ -68,11 +74,13 @@ const Settings: React.FC = () => {
     title: string;
     children: React.ReactNode;
   }) => (
-    <View style={localStyles.section}>
-      <Text style={[localStyles.sectionTitle, { color: theme.colors.textSecondary }]}>
+    <View style={styles.section}>
+      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
         {title}
       </Text>
-      {children}
+      <View style={[styles.sectionContent, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+         {children}
+      </View>
     </View>
   );
 
@@ -81,51 +89,65 @@ const Settings: React.FC = () => {
     value,
     onValueChange,
     showSwitch = false,
+    isFirst = false,
+    isLast = false,
+    onPress,
   }: {
     label: string;
     value?: boolean;
     onValueChange?: (value: boolean) => void;
     showSwitch?: boolean;
-  }) => (
-    <View
-      style={[
-        localStyles.settingItem,
-        {
-          backgroundColor: theme.colors.surface,
-          borderBottomColor: theme.colors.border,
-        },
-      ]}
-    >
-      <Text style={[localStyles.settingLabel, { color: theme.colors.text }]}>
-        {label}
-      </Text>
-      {showSwitch ? (
-        <Switch
-          value={value}
-          onValueChange={onValueChange}
-          trackColor={{
-            false: theme.colors.border,
-            true: theme.colors.primary,
-          }}
-          thumbColor={value ? "#fff" : "#f4f3f4"}
-        />
-      ) : (
-        <Text style={[localStyles.settingValue, { color: theme.colors.textSecondary }]}>
-          ›
-        </Text>
-      )}
-    </View>
-  );
+    isFirst?: boolean;
+    isLast?: boolean;
+    onPress?: () => void;
+  }) => {
+    const content = (
+        <View
+          style={[
+            styles.settingItem,
+            {
+              borderBottomColor: theme.colors.border,
+              borderBottomWidth: isLast ? 0 : 1,
+            },
+          ]}
+        >
+          <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+            {label}
+          </Text>
+          {showSwitch ? (
+            <Switch
+              value={value}
+              onValueChange={onValueChange}
+              trackColor={{
+                false: theme.colors.border,
+                true: theme.colors.primary,
+              }}
+              thumbColor={value ? "#fff" : "#f4f3f4"}
+            />
+          ) : (
+            <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+              ›
+            </Text>
+          )}
+        </View>
+    );
+
+    if (onPress) {
+        return (
+            <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+                {content}
+            </TouchableOpacity>
+        );
+    }
+    return content;
+  };
 
   const handleToggleNotifications = async (value: boolean) => {
-    // UX: if user wants to enable, send them to Notification Preferences
-    // (where you can request permission / register token etc.)
     if (value) {
       router.push("/notification-preferences");
       return;
     }
 
-    // Turning OFF: persist locally
     setNotificationsEnabled(false);
     setDonationReminders(false);
 
@@ -205,23 +227,20 @@ const Settings: React.FC = () => {
 
   return (
     <SafeAreaView style={globalStyles.container}>
-      <ScrollView style={localStyles.scrollView} showsVerticalScrollIndicator={false}>
-        <Text style={[localStyles.header, { color: theme.colors.text }]}>
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <Text style={[styles.header, { color: theme.colors.text }]}>
           Settings
         </Text>
 
         <SettingSection title="Appearance">
           <View
             style={[
-              localStyles.settingItem,
-              {
-                backgroundColor: theme.colors.surface,
-                borderBottomColor: theme.colors.border,
-              },
+              styles.settingItem,
+              { borderBottomWidth: 0 },
             ]}
           >
-            <Text style={[localStyles.settingLabel, { color: theme.colors.text }]}>
-              Theme
+            <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+              Dark Mode
             </Text>
             <ThemeToggle />
           </View>
@@ -233,39 +252,19 @@ const Settings: React.FC = () => {
             value={notificationsEnabled}
             onValueChange={handleToggleNotifications}
             showSwitch={true}
+            isFirst={true}
           />
-
           <SettingItem
             label="Donation Reminders"
             value={donationReminders}
             onValueChange={handleToggleDonationReminders}
             showSwitch={true}
           />
-
-          {donationReminders && (
-            <TouchableOpacity onPress={() => router.push("/donation-reminders")}>
-              <View
-                style={[
-                  localStyles.settingItem,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderBottomColor: theme.colors.border,
-                  },
-                ]}
-              >
-                <Text style={[localStyles.settingLabel, { color: theme.colors.primary }]}>
-                  ⚙️ Configure Donation Reminders
-                </Text>
-                <Text style={[localStyles.settingValue, { color: theme.colors.textSecondary }]}>
-                  ›
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity onPress={() => router.push("/notification-preferences")}>
-            <SettingItem label="Notification Preferences" />
-          </TouchableOpacity>
+          <SettingItem 
+            label="Notification Preferences" 
+            onPress={() => router.push("/notification-preferences")}
+            isLast={true}
+          />
         </SettingSection>
 
         <SettingSection title="Privacy & Location">
@@ -274,96 +273,91 @@ const Settings: React.FC = () => {
             value={locationServices}
             onValueChange={handleToggleLocationServices}
             showSwitch={true}
+            isFirst={true}
           />
-
-          {locationServices && (
-            <TouchableOpacity onPress={() => router.push("/location-services")}>
-              <View
-                style={[
-                  localStyles.settingItem,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderBottomColor: theme.colors.border,
-                  },
-                ]}
-              >
-                <Text style={[localStyles.settingLabel, { color: theme.colors.primary }]}>
-                  📍 Configure Location Services
-                </Text>
-                <Text style={[localStyles.settingValue, { color: theme.colors.textSecondary }]}>
-                  ›
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity onPress={() => router.push("/privacy-policy")}>
-            <SettingItem label="Privacy Policy" />
-          </TouchableOpacity>
+          <SettingItem 
+            label="Privacy Policy" 
+            onPress={() => router.push("/privacy-policy")}
+            isLast={true}
+          />
         </SettingSection>
 
         <SettingSection title="Donation Profile">
-          <TouchableOpacity onPress={() => router.push("/eligibility-settings")}>
-            <SettingItem label="Eligibility" />
-          </TouchableOpacity>
+          <SettingItem 
+            label="Eligibility Criteria" 
+            onPress={() => router.push("/eligibility-settings")}
+            isFirst={true}
+            isLast={true}
+          />
         </SettingSection>
 
         <SettingSection title="Account">
-          <TouchableOpacity onPress={() => router.push("/edit-profile")}>
-            <SettingItem label="Edit Profile" />
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.push("/change-password")}>
-            <SettingItem label="Change Password" />
-          </TouchableOpacity>
+          <SettingItem 
+            label="Edit Profile" 
+            onPress={() => router.push("/edit-profile")}
+            isFirst={true}
+          />
+          <SettingItem 
+            label="Change Password" 
+            onPress={() => router.push("/change-password")}
+            isLast={true}
+          />
         </SettingSection>
 
-        <View style={localStyles.dangerZone}>
+        <View style={styles.dangerZone}>
           <Button
             title={authLoading ? "Logging out..." : "Log Out"}
             onPress={handleLogout}
             disabled={authLoading}
+            fullWidth
           />
         </View>
 
-        <Text style={[localStyles.version, { color: theme.colors.textSecondary }]}>
-          Version 1.0.0
+        <Text style={[styles.version, { color: theme.colors.textMuted }]}>
+          Version 1.0.0 · RaktaCare
         </Text>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-const localStyles = StyleSheet.create({
+const styles = StyleSheet.create({
   scrollView: { flex: 1, width: "100%" },
   header: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: "bold",
     marginHorizontal: 20,
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  section: { marginBottom: 24 },
+  section: { marginBottom: 28 },
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginHorizontal: 20,
-    marginBottom: 8,
-    opacity: 0.7,
+    marginBottom: 10,
+    opacity: 0.8,
+  },
+  sectionContent: {
+    marginHorizontal: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
   },
   settingItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   settingLabel: { fontSize: 16, fontWeight: "500" },
   settingValue: { fontSize: 20, fontWeight: "300" },
-  dangerZone: { marginHorizontal: 20, marginTop: 32, marginBottom: 16 },
+  dangerZone: { marginHorizontal: 20, marginTop: 40, marginBottom: 20 },
   version: { textAlign: "center", fontSize: 12, marginBottom: 32 },
 });
 

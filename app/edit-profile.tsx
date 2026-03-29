@@ -3,7 +3,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { createGlobalStyles, Theme } from "@/styles/globalStyles";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -18,7 +18,6 @@ import {
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-// ✅ FIX: InputField is now OUTSIDE the main component — prevents re-render on every keystroke
 const InputField = ({
   label,
   value,
@@ -34,9 +33,9 @@ const InputField = ({
   onChangeText: (text: string) => void;
   placeholder: string;
   keyboardType?: "default" | "phone-pad" | "email-address";
+  theme: Theme;
   editable?: boolean;
   multiline?: boolean;
-  theme: Theme;
 }) => (
   <View
     style={[
@@ -58,7 +57,7 @@ const InputField = ({
           borderColor: theme.colors.border,
           backgroundColor: editable
             ? theme.colors.background
-            : theme.colors.surface,
+            : theme.colors.surfaceAlt,
         },
         multiline && styles.multilineInput,
         !editable && styles.disabledInput,
@@ -66,7 +65,7 @@ const InputField = ({
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor={theme.colors.textSecondary + "80"}
+      placeholderTextColor={theme.colors.textMuted}
       keyboardType={keyboardType}
       editable={editable}
       multiline={multiline}
@@ -97,7 +96,7 @@ const EditProfile: React.FC = () => {
     profileData?.emergencyPhone || ""
   );
 
-  const hasChanges = useCallback(() => {
+  const hasChanges = useMemo(() => {
     return (
       displayName !== (profileData?.displayName || profileData?.name || "") ||
       phone !== (profileData?.phone || "") ||
@@ -124,7 +123,7 @@ const EditProfile: React.FC = () => {
       return;
     }
 
-    if (phone && !/^(\+977)?[9][0-9]{9}$/.test(phone.replace(/\s/g, ""))) {
+    if (phone && !/^(\+?977)?[9][0-9]{9}$/.test(phone.replace(/\s+/g, ""))) {
       Alert.alert(
         "Invalid Phone",
         "Please enter a valid Nepali phone number (e.g., 98XXXXXXXX)."
@@ -169,7 +168,7 @@ const EditProfile: React.FC = () => {
   };
 
   const handleBack = () => {
-    if (hasChanges()) {
+    if (hasChanges) {
       Alert.alert(
         "Discard Changes?",
         "You have unsaved changes. Are you sure you want to go back?",
@@ -196,16 +195,16 @@ const EditProfile: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={handleBack}>
-            <Text style={[styles.backButton, { color: theme.colors.primary }]}>
+          <TouchableOpacity onPress={handleBack} activeOpacity={0.7}>
+            <Text style={[styles.backText, { color: theme.colors.primary }]}>
               ← Back
             </Text>
           </TouchableOpacity>
-          {hasChanges() && (
+          {hasChanges && (
             <View
               style={[
                 styles.unsavedBadge,
-                { backgroundColor: theme.colors.primary + "20" },
+                { backgroundColor: theme.colors.primaryLight },
               ]}
             >
               <Text
@@ -217,19 +216,19 @@ const EditProfile: React.FC = () => {
           )}
         </View>
 
-        <Text style={[styles.header, { color: theme.colors.text }]}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>
           Edit Profile
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
           Update your personal and donation information
         </Text>
 
-        {/* Avatar */}
+        {/* Avatar Preview */}
         <View style={styles.avatarSection}>
           <View
             style={[
               styles.avatar,
-              { backgroundColor: theme.colors.primary + "20" },
+              { backgroundColor: theme.colors.primaryLight },
             ]}
           >
             <Text style={[styles.avatarText, { color: theme.colors.primary }]}>
@@ -315,6 +314,7 @@ const EditProfile: React.FC = () => {
             {BLOOD_TYPES.map((type) => (
               <TouchableOpacity
                 key={type}
+                activeOpacity={0.75}
                 style={[
                   styles.bloodTypeChip,
                   {
@@ -326,6 +326,7 @@ const EditProfile: React.FC = () => {
                       bloodType === type
                         ? theme.colors.primary
                         : theme.colors.border,
+                    ...(bloodType === type ? (theme.shadow.sm as any) : {}),
                   },
                 ]}
                 onPress={() => setBloodType(type)}
@@ -333,7 +334,7 @@ const EditProfile: React.FC = () => {
                 <Text
                   style={{
                     fontSize: 16,
-                    color: bloodType === type ? "#fff" : theme.colors.text,
+                    color: bloodType === type ? theme.colors.white : theme.colors.text,
                     fontWeight: bloodType === type ? "700" : "500",
                   }}
                 >
@@ -378,22 +379,27 @@ const EditProfile: React.FC = () => {
           style={[
             styles.saveButton,
             {
-              backgroundColor: hasChanges()
+              backgroundColor: hasChanges
                 ? theme.colors.primary
-                : theme.colors.textSecondary,
+                : theme.colors.textMuted,
+                opacity: (loading || !hasChanges) ? 0.7 : 1,
+                ...(hasChanges ? (theme.shadow.md as any) : {}),
             },
           ]}
           onPress={handleSave}
-          disabled={loading || !hasChanges()}
+          disabled={loading || !hasChanges}
+          activeOpacity={0.8}
         >
           {loading ? (
-            <ActivityIndicator color="#fff" />
+            <ActivityIndicator color={theme.colors.white} />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={[styles.saveButtonText, { color: theme.colors.white }]}>
+               Save Changes
+            </Text>
           )}
         </TouchableOpacity>
 
-        {/* Account Info Card */}
+        {/* Account Info Details */}
         <View
           style={[
             styles.accountCard,
@@ -418,8 +424,8 @@ const EditProfile: React.FC = () => {
             >
               User ID
             </Text>
-            <Text style={[styles.accountValue, { color: theme.colors.text }]}>
-              {(profileData?.id || user?.uid || "N/A").slice(0, 16)}...
+            <Text style={[styles.accountValue, { color: theme.colors.textMuted }]}>
+              {profileData?.id || user?.uid || "N/A"}
             </Text>
           </View>
 
@@ -492,80 +498,82 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 10,
+    marginBottom: 8,
   },
-  backButton: { fontSize: 16, fontWeight: "600" },
+  backText: { fontSize: 16, fontWeight: "700" },
   unsavedBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
   },
-  unsavedText: { fontSize: 12, fontWeight: "600" },
-  header: {
+  unsavedText: { fontSize: 12, fontWeight: "700" },
+  title: {
     fontSize: 28,
     fontWeight: "bold",
     marginHorizontal: 20,
-    marginTop: 10,
   },
   subtitle: {
     fontSize: 14,
     marginHorizontal: 20,
     marginBottom: 20,
     marginTop: 4,
+    lineHeight: 20,
   },
   avatarSection: { alignItems: "center", marginBottom: 24 },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  avatarText: { fontSize: 32, fontWeight: "700" },
-  avatarEmail: { fontSize: 13 },
-  section: { marginBottom: 24 },
+  avatarText: { fontSize: 34, fontWeight: "700" },
+  avatarEmail: { fontSize: 14, fontWeight: "500" },
+  section: { marginBottom: 28 },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 12,
+    opacity: 0.8,
   },
   fieldRow: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
   },
   fieldLabel: {
     fontSize: 13,
-    fontWeight: "600",
-    marginBottom: 6,
+    fontWeight: "700",
+    marginBottom: 8,
   },
   fieldInput: {
     fontSize: 15,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
   },
   multilineInput: {
-    minHeight: 80,
+    minHeight: 90,
     textAlignVertical: "top",
   },
   disabledInput: {
-    opacity: 0.6,
+    opacity: 0.7,
   },
   bloodTypeGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     paddingHorizontal: 16,
-    gap: 10,
+    gap: 12,
   },
   bloodTypeChip: {
-    width: 70,
-    height: 44,
-    borderRadius: 12,
+    width: 76,
+    height: 48,
+    borderRadius: 14,
     borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
@@ -573,32 +581,32 @@ const styles = StyleSheet.create({
   saveButton: {
     marginHorizontal: 20,
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 10,
   },
-  saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  saveButtonText: { fontSize: 17, fontWeight: "700" },
   accountCard: {
     marginHorizontal: 20,
-    marginTop: 24,
-    borderRadius: 12,
-    padding: 16,
+    marginTop: 32,
+    borderRadius: 16,
+    padding: 20,
   },
   accountCardTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 12,
+    letterSpacing: 0.8,
+    marginBottom: 16,
   },
   accountRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
-  accountLabel: { fontSize: 13 },
-  accountValue: { fontSize: 13, fontWeight: "500" },
+  accountLabel: { fontSize: 14, fontWeight: "500" },
+  accountValue: { fontSize: 13, fontWeight: "600" },
   accountDivider: { height: 1 },
 });
 

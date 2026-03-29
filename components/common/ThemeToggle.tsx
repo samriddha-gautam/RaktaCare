@@ -8,18 +8,18 @@ const DarkModeButton: React.FC = () => {
   return (
     <TouchableOpacity
       style={{
-        backgroundColor: isDark ? theme.colors.surface : "#ffffff",
+        backgroundColor: isDark ? theme.colors.surfaceAlt : theme.colors.surface,
         alignSelf: "flex-end",
-        padding: 4,
-        margin: 10,
-        borderRadius: 50,
+        paddingVertical: 6,
+        paddingHorizontal: 10,
+        borderRadius: theme.radii.full,
         borderWidth: 1,
         borderColor: theme.colors.border,
       }}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
       onPress={toggleTheme}
     >
-      <Text style={{ color: theme.colors.text }}>
+      <Text style={{ color: theme.colors.text, fontSize: 16 }}>
         {isDark ? "☀️" : "🌙"}
       </Text>
     </TouchableOpacity>

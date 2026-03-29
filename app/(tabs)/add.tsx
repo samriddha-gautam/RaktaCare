@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   required: {
-    color: "#FF6B6B",
+    color: "#DC2626",
   },
   input: {
     borderWidth: 1,

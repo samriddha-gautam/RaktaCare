@@ -111,6 +111,7 @@ const local = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     gap: 14,
+    paddingBottom: 16,
   },
   card: {
     borderWidth: 1,

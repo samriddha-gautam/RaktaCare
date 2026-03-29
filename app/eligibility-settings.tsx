@@ -210,32 +210,34 @@ const EligibilitySettings: React.FC = () => {
       case "eligible":
         return {
           emoji: "✅",
-          title: "You Are Eligible to Donate!",
-          subtitle: "You meet all Nepal Red Cross donation criteria",
-          color: "#22C55E",
+          title: "You Are Eligible!",
+          subtitle: "You meet Nepal Red Cross Society criteria",
+          color: theme.colors.success,
+          bg: theme.colors.successLight,
         };
       case "temporary":
         return {
           emoji: "⏳",
           title: "Temporarily Ineligible",
-          subtitle:
-            "You have a temporary condition. Please wait until it clears.",
-          color: "#F59E0B",
+          subtitle: "Wait until your temporary condition clears",
+          color: theme.colors.warning,
+          bg: theme.colors.warningLight,
         };
       case "ineligible":
         return {
           emoji: "❌",
           title: "Currently Not Eligible",
-          subtitle:
-            "Based on your info, you may not be eligible. Consult your doctor.",
-          color: "#EF4444",
+          subtitle: "Based on info, you may not be eligible now",
+          color: theme.colors.danger,
+          bg: theme.colors.dangerLight,
         };
       default:
         return {
           emoji: "📋",
-          title: "Complete Your Info",
-          subtitle: "Fill in your details to check eligibility",
-          color: theme.colors.textSecondary,
+          title: "Check Eligibility",
+          subtitle: "Fill in your details to check status",
+          color: theme.colors.primary,
+          bg: theme.colors.primaryLight,
         };
     }
   };
@@ -249,6 +251,7 @@ const EligibilitySettings: React.FC = () => {
     placeholder,
     unit,
     keyboardType = "numeric",
+    isLast = false
   }: {
     label: string;
     value: string;
@@ -256,13 +259,14 @@ const EligibilitySettings: React.FC = () => {
     placeholder: string;
     unit?: string;
     keyboardType?: "numeric" | "default";
+    isLast?: boolean;
   }) => (
     <View
       style={[
         styles.inputRow,
         {
-          backgroundColor: theme.colors.surface,
           borderBottomColor: theme.colors.border,
+          borderBottomWidth: isLast ? 0 : 1,
         },
       ]}
     >
@@ -282,7 +286,7 @@ const EligibilitySettings: React.FC = () => {
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={theme.colors.textMuted}
           keyboardType={keyboardType}
         />
         {unit && (
@@ -294,31 +298,65 @@ const EligibilitySettings: React.FC = () => {
     </View>
   );
 
-  // ✅ Clean login-required UI (no "settings/donor profile" wording)
+  const SwitchItem = ({
+    label,
+    subLabel,
+    value,
+    onValueChange,
+    trackColor,
+    isLast = false,
+  }: {
+    label: string;
+    subLabel?: string;
+    value: boolean;
+    onValueChange: (v: boolean) => void;
+    trackColor: string;
+    isLast?: boolean;
+  }) => (
+    <View
+      style={[
+        styles.conditionItem,
+        {
+          borderBottomColor: theme.colors.border,
+          borderBottomWidth: isLast ? 0 : 1,
+        },
+      ]}
+    >
+      <View style={styles.conditionTextContainer}>
+        <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
+          {label}
+        </Text>
+        {subLabel && (
+          <Text style={[styles.waitText, { color: theme.colors.textSecondary }]}>
+             {subLabel}
+          </Text>
+        )}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{
+          false: theme.colors.border,
+          true: trackColor,
+        }}
+        thumbColor={value ? "#fff" : "#f4f3f4"}
+      />
+    </View>
+  );
+
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={globalStyles.container}>
         <View style={styles.lockedContainer}>
-          <Text style={[styles.lockedTitle, { color: theme.colors.text }]}>
-            Please log in
-          </Text>
-
+          <Text style={[styles.lockedTitle, { color: theme.colors.primary }]}>📋 Check Eligibility</Text>
           <Text style={[styles.lockedText, { color: theme.colors.textSecondary }]}>
-            Log in to check and save your blood donation eligibility.
+            Create an account or log in to check your blood donation eligibility based on NRCS criteria.
           </Text>
-
           <TouchableOpacity
             style={[styles.lockedButton, { backgroundColor: theme.colors.primary }]}
             onPress={() => router.push("/profile")}
-            activeOpacity={0.9}
           >
-            <Text style={styles.lockedButtonText}>Log in</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 14 }}>
-            <Text style={[styles.backLink, { color: theme.colors.primary }]}>
-              ← Back
-            </Text>
+            <Text style={styles.lockedButtonText}>Continue to Profile</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -330,15 +368,15 @@ const EligibilitySettings: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={[styles.backButton, { color: theme.colors.primary }]}>
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={[styles.backText, { color: theme.colors.primary }]}>
               ← Back
             </Text>
           </TouchableOpacity>
         </View>
 
         <Text style={[styles.header, { color: theme.colors.text }]}>
-          Eligibility
+          Eligibility Check
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
           Based on Nepal Red Cross Society criteria
@@ -348,7 +386,7 @@ const EligibilitySettings: React.FC = () => {
         <View
           style={[
             styles.statusCard,
-            { backgroundColor: statusConfig.color + "15" },
+            { backgroundColor: statusConfig.bg },
           ]}
         >
           <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
@@ -385,6 +423,7 @@ const EligibilitySettings: React.FC = () => {
                       data.bloodType === type
                         ? theme.colors.primary
                         : theme.colors.border,
+                       ...(data.bloodType === type ? (theme.shadow.sm as any) : {}),
                   },
                 ]}
                 onPress={() => updateField("bloodType", type)}
@@ -405,103 +444,86 @@ const EligibilitySettings: React.FC = () => {
           </View>
         </View>
 
-        {/* Basic Health Info */}
+        {/* Health Info Group */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Basic Health Information
+            Basic Health Info
           </Text>
-
-          <InputRow
-            label="Age"
-            value={data.age}
-            onChangeText={(v) => updateField("age", v)}
-            placeholder="18-60"
-            unit="years"
-          />
-          <InputRow
-            label="Weight"
-            value={data.weight}
-            onChangeText={(v) => updateField("weight", v)}
-            placeholder="Min 45"
-            unit="kg"
-          />
-          <InputRow
-            label="Hemoglobin"
-            value={data.hemoglobin}
-            onChangeText={(v) => updateField("hemoglobin", v)}
-            placeholder="Min 12"
-            unit="gm/dl"
-          />
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <InputRow
+                label="Age"
+                value={data.age}
+                onChangeText={(v) => updateField("age", v)}
+                placeholder="18-60"
+                unit="years"
+            />
+            <InputRow
+                label="Weight"
+                value={data.weight}
+                onChangeText={(v) => updateField("weight", v)}
+                placeholder="Min 45"
+                unit="kg"
+            />
+            <InputRow
+                label="Hemoglobin"
+                value={data.hemoglobin}
+                onChangeText={(v) => updateField("hemoglobin", v)}
+                placeholder="Min 12"
+                unit="gm/dl"
+                isLast={true}
+            />
+          </View>
 
           <View style={[styles.criteriaBox, { backgroundColor: theme.colors.primary + "10" }]}>
             <Text style={[styles.criteriaTitle, { color: theme.colors.primary }]}>
-              🇳🇵 Nepal Red Cross Criteria
+              🇳🇵 NRCS Basic Criteria
             </Text>
             <Text style={[styles.criteriaText, { color: theme.colors.textSecondary }]}>
-              • Age: 18 - 60 years{"\n"}• Weight: Above 45 kg{"\n"}• Hemoglobin: Above 12 gm/dl{"\n"}• BP: 110-160 / 70-96 mmHg
+                • Age: 18 - 60 years · Weight: Above 45 kg{"\n"}
+                • Hb: Above 12 gm/dl · BP: 110-160/70-96
             </Text>
           </View>
         </View>
 
-        {/* Blood Pressure */}
+        {/* Blood Pressure Group */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Blood Pressure (Optional)
+             Blood Pressure (mmHg)
           </Text>
-          <InputRow
-            label="Systolic"
-            value={data.systolicBP}
-            onChangeText={(v) => updateField("systolicBP", v)}
-            placeholder="110-160"
-            unit="mmHg"
-          />
-          <InputRow
-            label="Diastolic"
-            value={data.diastolicBP}
-            onChangeText={(v) => updateField("diastolicBP", v)}
-            placeholder="70-96"
-            unit="mmHg"
-          />
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <InputRow
+                label="Systolic"
+                value={data.systolicBP}
+                onChangeText={(v) => updateField("systolicBP", v)}
+                placeholder="110-160"
+            />
+            <InputRow
+                label="Diastolic"
+                value={data.diastolicBP}
+                onChangeText={(v) => updateField("diastolicBP", v)}
+                placeholder="70-96"
+                isLast={true}
+            />
+          </View>
         </View>
 
-        {/* Permanent Medical Conditions */}
+        {/* Permanent Conditions */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Permanent Medical Conditions
+            Permanent Conditions
           </Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
-            Select if you have any of the following (these permanently affect eligibility)
-          </Text>
-
-          {MEDICAL_CONDITIONS.map((condition) => (
-            <View
-              key={condition.id}
-              style={[
-                styles.conditionItem,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderBottomColor: theme.colors.border,
-                  ...(data.permanentConditions[condition.id] && {
-                    borderLeftWidth: 3,
-                    borderLeftColor: "#EF4444",
-                  }),
-                },
-              ]}
-            >
-              <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
-                {condition.label}
-              </Text>
-              <Switch
-                value={data.permanentConditions[condition.id] || false}
-                onValueChange={() => togglePermanentCondition(condition.id)}
-                trackColor={{
-                  false: theme.colors.border,
-                  true: "#EF4444",
-                }}
-                thumbColor={data.permanentConditions[condition.id] ? "#fff" : "#f4f3f4"}
-              />
-            </View>
-          ))}
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+             {MEDICAL_CONDITIONS.map((c, i) => (
+                <SwitchItem
+                    key={c.id}
+                    label={c.label}
+                    value={data.permanentConditions[c.id] || false}
+                    onValueChange={() => togglePermanentCondition(c.id)}
+                    trackColor={theme.colors.danger}
+                    isLast={i === MEDICAL_CONDITIONS.length - 1}
+                />
+             ))}
+          </View>
         </View>
 
         {/* Temporary Conditions */}
@@ -509,139 +531,65 @@ const EligibilitySettings: React.FC = () => {
           <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
             Temporary Conditions
           </Text>
-          <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
-            Select if any currently apply (these temporarily affect eligibility)
-          </Text>
-
-          {TEMPORARY_CONDITIONS.map((condition) => (
-            <View
-              key={condition.id}
-              style={[
-                styles.conditionItem,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderBottomColor: theme.colors.border,
-                  ...(data.temporaryConditions[condition.id] && {
-                    borderLeftWidth: 3,
-                    borderLeftColor: "#F59E0B",
-                  }),
-                },
-              ]}
-            >
-              <View style={styles.conditionTextContainer}>
-                <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
-                  {condition.label}
-                </Text>
-                {condition.waitDays > 0 && (
-                  <Text style={[styles.waitText, { color: theme.colors.textSecondary }]}>
-                    Wait period: {condition.waitDays} days
-                  </Text>
-                )}
-              </View>
-              <Switch
-                value={data.temporaryConditions[condition.id] || false}
-                onValueChange={() => toggleTemporaryCondition(condition.id)}
-                trackColor={{
-                  false: theme.colors.border,
-                  true: "#F59E0B",
-                }}
-                thumbColor={data.temporaryConditions[condition.id] ? "#fff" : "#f4f3f4"}
-              />
-            </View>
-          ))}
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+             {TEMPORARY_CONDITIONS.map((c, i) => (
+                <SwitchItem
+                    key={c.id}
+                    label={c.label}
+                    subLabel={c.waitDays > 0 ? `Wait period: ${c.waitDays} days` : undefined}
+                    value={data.temporaryConditions[c.id] || false}
+                    onValueChange={() => toggleTemporaryCondition(c.id)}
+                    trackColor={theme.colors.warning}
+                    isLast={i === TEMPORARY_CONDITIONS.length - 1}
+                />
+             ))}
+          </View>
         </View>
 
-        {/* Emergency Availability */}
+        {/* Availability */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-            Emergency Availability
+            Alerts & Travel
           </Text>
-
-          <View
-            style={[
-              styles.conditionItem,
-              {
-                backgroundColor: theme.colors.surface,
-                borderBottomColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View style={styles.conditionTextContainer}>
-              <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
-                Available for Emergency Alerts
-              </Text>
-              <Text style={[styles.waitText, { color: theme.colors.textSecondary }]}>
-                Receive urgent blood request notifications
-              </Text>
-            </View>
-            <Switch
-              value={data.availableForEmergency}
-              onValueChange={(v) => updateField("availableForEmergency", v)}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
-              }}
-              thumbColor={data.availableForEmergency ? "#fff" : "#f4f3f4"}
-            />
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+             <SwitchItem
+                label="Emergency Alerts"
+                subLabel="Receive urgent local requests"
+                value={data.availableForEmergency}
+                onValueChange={(v) => updateField("availableForEmergency", v)}
+                trackColor={theme.colors.primary}
+             />
+             <SwitchItem
+                label="Willing to Travel"
+                subLabel="Willing to travel to centers"
+                value={data.willingToTravel}
+                onValueChange={(v) => updateField("willingToTravel", v)}
+                trackColor={theme.colors.primary}
+                isLast={!data.willingToTravel}
+             />
+             {data.willingToTravel && (
+                <InputRow
+                    label="Max Distance"
+                    value={data.maxTravelDistance}
+                    onChangeText={(v) => updateField("maxTravelDistance", v)}
+                    placeholder="10"
+                    unit="km"
+                    isLast={true}
+                />
+             )}
           </View>
-
-          <View
-            style={[
-              styles.conditionItem,
-              {
-                backgroundColor: theme.colors.surface,
-                borderBottomColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View style={styles.conditionTextContainer}>
-              <Text style={[styles.conditionLabel, { color: theme.colors.text }]}>
-                Willing to Travel
-              </Text>
-              <Text style={[styles.waitText, { color: theme.colors.textSecondary }]}>
-                Travel to donation centers for emergencies
-              </Text>
-            </View>
-            <Switch
-              value={data.willingToTravel}
-              onValueChange={(v) => updateField("willingToTravel", v)}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
-              }}
-              thumbColor={data.willingToTravel ? "#fff" : "#f4f3f4"}
-            />
-          </View>
-
-          {data.willingToTravel && (
-            <InputRow
-              label="Max Distance"
-              value={data.maxTravelDistance}
-              onChangeText={(v) => updateField("maxTravelDistance", v)}
-              placeholder="10"
-              unit="km"
-            />
-          )}
         </View>
 
-        {/* Save Button */}
         <TouchableOpacity
-          style={[
-            styles.saveButton,
-            {
-              backgroundColor:
-                eligibilityStatus === "ineligible"
-                  ? theme.colors.textSecondary
-                  : theme.colors.primary,
-            },
-          ]}
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary, ...(theme.shadow.md as any) }]}
           onPress={saveSettings}
+          activeOpacity={0.8}
         >
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>Save Eligibility Info</Text>
         </TouchableOpacity>
 
-        <Text style={[styles.disclaimer, { color: theme.colors.textSecondary }]}>
-          ⚠️ This eligibility check is for guidance only. Final eligibility is determined by medical staff.
+        <Text style={[styles.disclaimer, { color: theme.colors.textMuted }]}>
+             ⚠️ This is for guidance only. Final eligibility is determined by NRCS medical staff at donation.
         </Text>
 
         <View style={{ height: 40 }} />
@@ -653,8 +601,7 @@ const EligibilitySettings: React.FC = () => {
 const styles = StyleSheet.create({
   scrollView: { flex: 1, width: "100%" },
   headerRow: { paddingHorizontal: 20, paddingTop: 10 },
-  backButton: { fontSize: 16, fontWeight: "600" },
-
+  backText: { fontSize: 16, fontWeight: "700" },
   header: { fontSize: 28, fontWeight: "bold", marginHorizontal: 20, marginTop: 10 },
   subtitle: { fontSize: 14, marginHorizontal: 20, marginBottom: 20, marginTop: 4 },
 
@@ -662,69 +609,70 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     borderRadius: 16,
     padding: 24,
-    marginBottom: 24,
+    marginBottom: 28,
     alignItems: "center",
   },
   statusEmoji: { fontSize: 36, marginBottom: 8 },
-  statusTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
-  statusSubtitle: { fontSize: 13, textAlign: "center", marginTop: 4, lineHeight: 18 },
+  statusTitle: { fontSize: 18, fontWeight: "800", textAlign: "center" },
+  statusSubtitle: { fontSize: 13, textAlign: "center", marginTop: 4, opacity: 0.8 },
 
-  section: { marginBottom: 24 },
+  section: { marginBottom: 28 },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 10,
+    opacity: 0.8,
   },
-  sectionSubtitle: { fontSize: 12, marginHorizontal: 20, marginBottom: 10 },
+  groupCard: {
+    marginHorizontal: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
 
   bloodTypeGrid: { flexDirection: "row", flexWrap: "wrap", paddingHorizontal: 16, gap: 10 },
-  bloodTypeChip: { width: 70, height: 44, borderRadius: 12, borderWidth: 1.5, justifyContent: "center", alignItems: "center" },
+  bloodTypeChip: { width: 72, height: 44, borderRadius: 12, borderWidth: 1.5, justifyContent: "center", alignItems: "center" },
   bloodTypeText: { fontSize: 16 },
 
   inputRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  inputLabel: { fontSize: 16, fontWeight: "500", flex: 1 },
+  inputLabel: { fontSize: 15, fontWeight: "600", flex: 1 },
   inputRight: { flexDirection: "row", alignItems: "center" },
-  textInput: { width: 80, height: 38, borderRadius: 8, borderWidth: 1, textAlign: "center", fontSize: 15 },
+  textInput: { width: 76, height: 38, borderRadius: 8, borderWidth: 1, textAlign: "center", fontSize: 15 },
   unitText: { fontSize: 13, marginLeft: 8, width: 45 },
-
-  criteriaBox: { marginHorizontal: 20, marginTop: 12, borderRadius: 12, padding: 16 },
-  criteriaTitle: { fontSize: 14, fontWeight: "700", marginBottom: 8 },
-  criteriaText: { fontSize: 13, lineHeight: 20 },
 
   conditionItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
   },
   conditionTextContainer: { flex: 1, marginRight: 12 },
-  conditionLabel: { fontSize: 16, fontWeight: "500" },
-  waitText: { fontSize: 12, marginTop: 2 },
+  conditionLabel: { fontSize: 15, fontWeight: "600" },
+  waitText: { fontSize: 12, marginTop: 2, opacity: 0.8 },
 
-  saveButton: { marginHorizontal: 20, paddingVertical: 16, borderRadius: 12, alignItems: "center", marginTop: 8 },
+  criteriaBox: { marginHorizontal: 20, marginTop: 14, borderRadius: 14, padding: 16 },
+  criteriaTitle: { fontSize: 14, fontWeight: "700", marginBottom: 6 },
+  criteriaText: { fontSize: 13, lineHeight: 18 },
+
+  saveButton: { marginHorizontal: 20, paddingVertical: 16, borderRadius: 14, alignItems: "center", marginTop: 8 },
   saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
+  disclaimer: { fontSize: 11, textAlign: "center", marginHorizontal: 32, marginTop: 20, lineHeight: 16 },
 
-  disclaimer: { fontSize: 11, textAlign: "center", marginHorizontal: 24, marginTop: 16, lineHeight: 16 },
-
-  // login-required UI
-  lockedContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 60, alignItems: "center" },
-  lockedTitle: { fontSize: 22, fontWeight: "800", marginBottom: 10 },
-  lockedText: { fontSize: 13, textAlign: "center", lineHeight: 18 },
-  lockedButton: { marginTop: 18, paddingVertical: 14, paddingHorizontal: 18, borderRadius: 12 },
-  lockedButtonText: { color: "#fff", fontWeight: "800" },
-  backLink: { fontSize: 16, fontWeight: "700" },
+  lockedContainer: { flex: 1, paddingHorizontal: 32, paddingTop: 80, alignItems: "center" },
+  lockedTitle: { fontSize: 24, fontWeight: "800", marginBottom: 12 },
+  lockedText: { fontSize: 14, textAlign: "center", lineHeight: 22, marginBottom: 24 },
+  lockedButton: { paddingVertical: 16, paddingHorizontal: 24, borderRadius: 14 },
+  lockedButtonText: { color: "#fff", fontWeight: "800", fontSize: 16 },
 });
 
 export default EligibilitySettings;

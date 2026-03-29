@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -13,6 +13,7 @@ import {
   View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -29,18 +30,27 @@ const AuthForm: React.FC<AuthFormProps> = ({
   accentColor = "#DC2626",
   backgroundColor = "#FEF2F2",
 }) => {
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
-  // const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  const dynamicStyles = StyleSheet.create({
+  const dynamicStyles = useMemo(() => StyleSheet.create({
     accentButton: { backgroundColor: accentColor },
     lightBackground: { backgroundColor: backgroundColor },
     accentText: { color: accentColor },
     inputFocused: { borderColor: accentColor },
-  });
+    inputContainer: {
+        backgroundColor: theme.colors.background,
+        borderColor: theme.colors.border,
+        color: theme.colors.text,
+    },
+    containerBg: { backgroundColor: theme.colors.background },
+    placeholderColor: { color: theme.colors.textMuted },
+    textPrimary: { color: theme.colors.text },
+    textSecondary: { color: theme.colors.textSecondary },
+  }), [accentColor, backgroundColor, theme]);
 
   const validateInputs = () => {
     if (!email.trim()) {
@@ -92,7 +102,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, dynamicStyles.containerBg]}>
       <KeyboardAvoidingView 
         behavior={Platform.OS === "ios" ? "padding" : "height"} 
         style={styles.keyboardView}
@@ -111,7 +121,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
               <Text style={[styles.headerTitle, dynamicStyles.accentText]}>
                 {isLoginMode ? "Welcome Back!" : "Create Account"}
               </Text>
-              <Text style={styles.headerSubtitle}>
+              <Text style={[styles.headerSubtitle, dynamicStyles.textSecondary]}>
                 {isLoginMode
                   ? "Sign in to your account"
                   : "Fill in your details to get started"}
@@ -121,12 +131,13 @@ const AuthForm: React.FC<AuthFormProps> = ({
             <View style={styles.form}>
               {!isLoginMode && (
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Full Name</Text>
+                  <Text style={[styles.inputLabel, dynamicStyles.textPrimary]}>Full Name</Text>
                   <TextInput
                     value={name}
                     onChangeText={setName}
-                    style={[styles.input, dynamicStyles.inputFocused]}
+                    style={[styles.input, dynamicStyles.inputContainer]}
                     placeholder="Enter your full name"
+                    placeholderTextColor={theme.colors.textMuted}
                     editable={!loading}
                     autoCapitalize="words"
                   />
@@ -134,12 +145,13 @@ const AuthForm: React.FC<AuthFormProps> = ({
               )}
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={[styles.inputLabel, dynamicStyles.textPrimary]}>Email Address</Text>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
-                  style={[styles.input, dynamicStyles.inputFocused]}
+                  style={[styles.input, dynamicStyles.inputContainer]}
                   placeholder="Enter your email"
+                  placeholderTextColor={theme.colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   editable={!loading}
@@ -148,18 +160,19 @@ const AuthForm: React.FC<AuthFormProps> = ({
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Password</Text>
+                <Text style={[styles.inputLabel, dynamicStyles.textPrimary]}>Password</Text>
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
-                  style={[styles.input, dynamicStyles.inputFocused]}
+                  style={[styles.input, dynamicStyles.inputContainer]}
                   placeholder="Enter your password"
+                  placeholderTextColor={theme.colors.textMuted}
                   secureTextEntry
                   editable={!loading}
                   autoComplete="password"
                 />
                 {!isLoginMode && (
-                  <Text style={styles.passwordHint}>
+                  <Text style={[styles.passwordHint, dynamicStyles.textSecondary]}>
                     Password must be at least 6 characters
                   </Text>
                 )}
@@ -167,8 +180,9 @@ const AuthForm: React.FC<AuthFormProps> = ({
 
               <TouchableOpacity
                 onPress={isLoginMode ? handleLogin : handleSignup}
-                style={[styles.primaryButton, dynamicStyles.accentButton]}
+                style={[styles.primaryButton, dynamicStyles.accentButton, (theme.shadow.md as any)]}
                 disabled={loading}
+                activeOpacity={0.8}
               >
                 <Text style={styles.primaryButtonText}>
                   {loading
@@ -182,7 +196,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
               </TouchableOpacity>
 
               <View style={styles.toggleContainer}>
-                <Text style={styles.toggleText}>
+                <Text style={[styles.toggleText, dynamicStyles.textSecondary]}>
                   {isLoginMode
                     ? "Don't have an account? "
                     : "Already have an account? "}
@@ -208,7 +222,6 @@ export default AuthForm;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   keyboardView: {
     flex: 1,
@@ -238,63 +251,10 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 16,
-    color: "#6B7280",
     textAlign: "center",
   },
   form: {
     flex: 1,
-  },
-  photoSection: {
-    marginBottom: 20,
-    alignItems: 'center',
-  },
-  photoContainer: {
-    position: 'relative',
-    marginVertical: 10,
-  },
-  profilePhoto: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  removePhotoButton: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: '#DC2626',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removePhotoText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  photoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 10,
-  },
-  photoPlaceholderText: {
-    fontSize: 30,
-  },
-  photoPlaceholderSubtext: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginTop: 4,
-  },
-  changePhotoText: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginTop: 5,
   },
   inputContainer: {
     marginBottom: 20,
@@ -302,34 +262,24 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 16,
     fontWeight: "500",
-    color: "#374151",
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
+    borderWidth: 1,
     fontSize: 16,
-    color: "#1F2937",
   },
   passwordHint: {
     fontSize: 12,
-    color: "#6B7280",
     marginTop: 4,
   },
   primaryButton: {
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: "center",
     marginTop: 8,
     marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   primaryButtonText: {
     color: "#FFFFFF",
@@ -343,7 +293,6 @@ const styles = StyleSheet.create({
   },
   toggleText: {
     fontSize: 16,
-    color: "#6B7280",
   },
   toggleLink: {
     fontSize: 16,

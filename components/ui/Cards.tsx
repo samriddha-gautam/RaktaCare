@@ -149,7 +149,7 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
           ]}
           activeOpacity={0.8}
         >
-          <View style={styles.recentImage}>
+          <View style={[styles.recentImage, { backgroundColor: theme.colors.primary }]}>
             <Text style={styles.bloodTypeInImage}>{request.bloodType}</Text>
           </View>
           <View style={styles.recentContent}>
@@ -162,7 +162,9 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
                   styles.statusBadge,
                   {
                     backgroundColor:
-                      request.status === "active" ? "#4CAF50" : "#9E9E9E",
+                      request.status === "active"
+                        ? theme.colors.success
+                        : theme.colors.textMuted,
                   },
                 ]}
               >
@@ -175,14 +177,16 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
             >
               {request.description}
             </Text>
-            <Text style={styles.recentLocation}>{request.location}</Text>
+            <Text style={[styles.recentLocation, { color: theme.colors.primary }]}>
+              {request.location}
+            </Text>
             <View style={styles.footerRow}>
               <Text style={[gstyles.textSecondary, styles.timeText]}>
                 {formatDate(request.createdAt)}
               </Text>
               {user && user.uid === request.userId && (
                 <TouchableOpacity
-                  style={styles.toggleButton}
+                  style={[styles.toggleButton, { backgroundColor: theme.colors.primary }]}
                   onPress={() =>
                     handleToggleStatus(
                       request.id,
@@ -220,39 +224,32 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: "bold",
+    marginHorizontal: 20,
   },
   requestCount: {
     fontSize: 14,
   },
   recentCard: {
     marginHorizontal: 20,
-    marginBottom: 15,
-    borderRadius: 10,
+    marginBottom: 12,
+    borderRadius: 14,
     flexDirection: "row",
-    padding: 15,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    padding: 14,
   },
   completedCard: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   recentImage: {
-    width: 80,
-    height: 80,
-    backgroundColor: "#FF6B6B",
-    borderRadius: 8,
-    marginRight: 15,
+    width: 72,
+    height: 72,
+    borderRadius: 10,
+    marginRight: 14,
     justifyContent: "center",
     alignItems: "center",
   },
   bloodTypeInImage: {
     color: "#fff",
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
   },
   recentContent: {
@@ -269,9 +266,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 10,
   },
   statusText: {
     color: "#fff",
@@ -281,13 +278,12 @@ const styles = StyleSheet.create({
   },
   recentDescription: {
     fontSize: 14,
-    marginTop: 5,
+    marginTop: 4,
   },
   recentLocation: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#FF6B6B",
-    marginTop: 5,
+    marginTop: 4,
   },
   footerRow: {
     flexDirection: "row",
@@ -299,10 +295,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   toggleButton: {
-    backgroundColor: "#FF6B6B",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 8,
   },
   toggleButtonText: {
     color: "#fff",

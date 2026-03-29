@@ -124,15 +124,15 @@ const DonationReminders: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={[styles.backButton, { color: theme.colors.primary }]}>
+          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
+            <Text style={[styles.backText, { color: theme.colors.primary }]}>
               ← Back
             </Text>
           </TouchableOpacity>
         </View>
 
         <Text style={[styles.header, { color: theme.colors.text }]}>
-          Donation Reminders
+           Donation Reminders
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
           Stay on track with your blood donation schedule
@@ -140,7 +140,7 @@ const DonationReminders: React.FC = () => {
 
         {/* Next Donation Preview Card */}
         <View
-          style={[styles.previewCard, { backgroundColor: theme.colors.primary }]}
+          style={[styles.previewCard, { backgroundColor: theme.colors.primary, ...(theme.shadow.md as any) }]}
         >
           <Text style={styles.previewLabel}>Next Eligible Donation</Text>
           <Text style={styles.previewDate}>{getNextDonationDate()}</Text>
@@ -158,132 +158,129 @@ const DonationReminders: React.FC = () => {
           >
             Donation Type
           </Text>
-          {DONATION_TYPES.map((type, index) => (
-            <TouchableOpacity
-              key={type.label}
-              style={[
-                styles.optionItem,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderBottomColor: theme.colors.border,
-                  ...(selectedType === index && {
-                    borderLeftWidth: 3,
-                    borderLeftColor: theme.colors.primary,
-                  }),
-                },
-              ]}
-              onPress={() => setSelectedType(index)}
-            >
-              <View>
-                <Text
-                  style={[styles.optionLabel, { color: theme.colors.text }]}
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            {DONATION_TYPES.map((type, index) => (
+                <TouchableOpacity
+                    key={type.label}
+                    style={[
+                        styles.optionItem,
+                        {
+                            borderBottomColor: theme.colors.border,
+                            borderBottomWidth: index === DONATION_TYPES.length - 1 ? 0 : 1,
+                        },
+                    ]}
+                    onPress={() => setSelectedType(index)}
+                    activeOpacity={0.7}
                 >
-                  {type.label}
-                </Text>
-                <Text
-                  style={[
-                    styles.optionSub,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  Every {type.days} days
-                </Text>
-              </View>
-              {selectedType === index && (
-                <Text style={{ color: theme.colors.primary, fontSize: 20 }}>
-                  ✓
-                </Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Last Donation Date */}
-        <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            Last Donation Date
-          </Text>
-          <View
-            style={[
-              styles.dateContainer,
-              { backgroundColor: theme.colors.surface },
-            ]}
-          >
-            <Text style={[styles.dateText, { color: theme.colors.text }]}>
-              {lastDonationDate
-                ? lastDonationDate.toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : "Not set"}
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.dateButton,
-                { backgroundColor: theme.colors.primary },
-              ]}
-              onPress={setLastDonationToday}
-            >
-              <Text style={styles.dateButtonText}>I Donated Today</Text>
-            </TouchableOpacity>
+                    <View>
+                        <Text
+                            style={[
+                                styles.optionLabel,
+                                { color: selectedType === index ? theme.colors.primary : theme.colors.text }
+                            ]}
+                        >
+                            {type.label}
+                        </Text>
+                        <Text
+                            style={[
+                                styles.optionSub,
+                                { color: theme.colors.textSecondary },
+                            ]}
+                        >
+                            Every {type.days} days
+                        </Text>
+                    </View>
+                    {selectedType === index && (
+                        <Text style={{ color: theme.colors.primary, fontSize: 20 }}>
+                            ✓
+                        </Text>
+                    )}
+                </TouchableOpacity>
+            ))}
           </View>
         </View>
 
-        {/* Reminder Time */}
+        {/* Date / Time Group */}
         <View style={styles.section}>
-          <Text
-            style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
-          >
-            Reminder Time
-          </Text>
-          <TouchableOpacity
-            style={[
-              styles.timeSelector,
-              { backgroundColor: theme.colors.surface },
-            ]}
-            onPress={() => setShowTimePicker(!showTimePicker)}
-          >
             <Text
-              style={[styles.timeSelectorLabel, { color: theme.colors.text }]}
+                style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
             >
-              Remind me at
+                Schedule Information
             </Text>
-            <Text
-              style={[
-                styles.timeSelectorValue,
-                { color: theme.colors.primary },
-              ]}
-            >
-              {selectedTime} ▾
-            </Text>
-          </TouchableOpacity>
+            <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                 {/* Last Donation Date Row */}
+                 <View style={[styles.dateContainer, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
+                    <View style={{ flex: 1 }}>
+                        <Text style={[styles.optionLabel, { color: theme.colors.text }]}>Last Donation</Text>
+                        <Text style={[styles.optionSub, { color: theme.colors.textSecondary }]}>
+                            {lastDonationDate
+                                ? lastDonationDate.toLocaleDateString("en-US", {
+                                    year: "numeric",
+                                    month: "long",
+                                    day: "numeric",
+                                })
+                                : "Not set"}
+                        </Text>
+                    </View>
+                    <TouchableOpacity
+                        style={[
+                            styles.dateButton,
+                            { backgroundColor: theme.colors.primary },
+                        ]}
+                        onPress={setLastDonationToday}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.dateButtonText}>I Donated Today</Text>
+                    </TouchableOpacity>
+                 </View>
 
-          {showTimePicker && (
+                 {/* Reminder Time Row */}
+                 <TouchableOpacity
+                    style={[
+                        styles.timeSelector,
+                    ]}
+                    onPress={() => setShowTimePicker(!showTimePicker)}
+                    activeOpacity={0.7}
+                 >
+                    <Text
+                        style={[styles.optionLabel, { color: theme.colors.text }]}
+                    >
+                        Remind me at
+                    </Text>
+                    <Text
+                        style={[
+                            styles.timeSelectorValue,
+                            { color: theme.colors.primary },
+                        ]}
+                    >
+                        {selectedTime} ▾
+                    </Text>
+                 </TouchableOpacity>
+            </View>
+
+            {showTimePicker && (
             <View
               style={[
                 styles.timePickerContainer,
-                { backgroundColor: theme.colors.surface },
+                { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
               ]}
             >
-              {REMINDER_TIMES.map((time) => (
+              {REMINDER_TIMES.map((time, i) => (
                 <TouchableOpacity
                   key={time}
                   style={[
                     styles.timeOption,
                     {
                       borderBottomColor: theme.colors.border,
-                      ...(selectedTime === time && {
-                        backgroundColor: theme.colors.primary + "20",
-                      }),
+                      borderBottomWidth: i === REMINDER_TIMES.length - 1 ? 0 : 1,
+                      backgroundColor: selectedTime === time ? theme.colors.primary + "15" : "transparent",
                     },
                   ]}
                   onPress={() => {
                     setSelectedTime(time);
                     setShowTimePicker(false);
                   }}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
@@ -293,7 +290,7 @@ const DonationReminders: React.FC = () => {
                           selectedTime === time
                             ? theme.colors.primary
                             : theme.colors.text,
-                        fontWeight: selectedTime === time ? "700" : "400",
+                        fontWeight: selectedTime === time ? "700" : "500",
                       },
                     ]}
                   >
@@ -305,87 +302,55 @@ const DonationReminders: React.FC = () => {
           )}
         </View>
 
-        {/* Notification Methods */}
+        {/* Notifications Group */}
         <View style={styles.section}>
           <Text
             style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}
           >
             Notification Methods
           </Text>
-          <View
-            style={[
-              styles.switchItem,
-              {
-                backgroundColor: theme.colors.surface,
-                borderBottomColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View>
-              <Text
-                style={[styles.switchLabel, { color: theme.colors.text }]}
-              >
-                Push Notifications
-              </Text>
-              <Text
+          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+            <View
                 style={[
-                  styles.switchSub,
-                  { color: theme.colors.textSecondary },
+                styles.switchItem,
+                { borderBottomColor: theme.colors.border, borderBottomWidth: 1 },
                 ]}
-              >
-                Get notified on your device
-              </Text>
+            >
+                <View>
+                    <Text style={[styles.optionLabel, { color: theme.colors.text }]}>Push Notifications</Text>
+                    <Text style={[styles.optionSub, { color: theme.colors.textSecondary }]}>
+                        Get notified on this device
+                    </Text>
+                </View>
+                <Switch
+                    value={pushEnabled}
+                    onValueChange={setPushEnabled}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                    thumbColor={pushEnabled ? "#fff" : "#f4f3f4"}
+                />
             </View>
-            <Switch
-              value={pushEnabled}
-              onValueChange={setPushEnabled}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
-              }}
-              thumbColor={pushEnabled ? "#fff" : "#f4f3f4"}
-            />
-          </View>
-          <View
-            style={[
-              styles.switchItem,
-              {
-                backgroundColor: theme.colors.surface,
-                borderBottomColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View>
-              <Text
-                style={[styles.switchLabel, { color: theme.colors.text }]}
-              >
-                Email Reminders
-              </Text>
-              <Text
-                style={[
-                  styles.switchSub,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                Receive email before your next eligible date
-              </Text>
+            <View style={styles.switchItem}>
+                <View>
+                    <Text style={[styles.optionLabel, { color: theme.colors.text }]}>Email Reminders</Text>
+                    <Text style={[styles.optionSub, { color: theme.colors.textSecondary }]}>
+                        Receive email reminders
+                    </Text>
+                </View>
+                <Switch
+                    value={emailEnabled}
+                    onValueChange={setEmailEnabled}
+                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                    thumbColor={emailEnabled ? "#fff" : "#f4f3f4"}
+                />
             </View>
-            <Switch
-              value={emailEnabled}
-              onValueChange={setEmailEnabled}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
-              }}
-              thumbColor={emailEnabled ? "#fff" : "#f4f3f4"}
-            />
           </View>
         </View>
 
         {/* Save Button */}
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: theme.colors.primary }]}
+          style={[styles.saveButton, { backgroundColor: theme.colors.primary, ...(theme.shadow.md as any) }]}
           onPress={saveSettings}
+          activeOpacity={0.8}
         >
           <Text style={styles.saveButtonText}>Save Reminder Settings</Text>
         </TouchableOpacity>
@@ -399,19 +364,10 @@ const DonationReminders: React.FC = () => {
 const styles = StyleSheet.create({
   scrollView: { flex: 1, width: "100%" },
   headerRow: { paddingHorizontal: 20, paddingTop: 10 },
-  backButton: { fontSize: 16, fontWeight: "600" },
-  header: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginHorizontal: 20,
-    marginTop: 10,
-  },
-  subtitle: {
-    fontSize: 14,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    marginTop: 4,
-  },
+  backText: { fontSize: 16, fontWeight: "700" },
+  header: { fontSize: 28, fontWeight: "bold", marginHorizontal: 20, marginTop: 10 },
+  subtitle: { fontSize: 14, marginHorizontal: 20, marginBottom: 20, marginTop: 4 },
+
   previewCard: {
     marginHorizontal: 20,
     borderRadius: 16,
@@ -419,98 +375,74 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     alignItems: "center",
   },
-  previewLabel: {
-    color: "#ffffffbb",
-    fontSize: 13,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 1,
-  },
-  previewDate: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 8,
-    textAlign: "center",
-  },
-  daysLeftBadge: {
-    marginTop: 12,
-    backgroundColor: "#ffffff33",
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  daysLeftText: { color: "#fff", fontSize: 14, fontWeight: "600" },
-  section: { marginBottom: 24 },
+  previewLabel: { color: "#ffffffcc", fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 1 },
+  previewDate: { color: "#fff", fontSize: 18, fontWeight: "800", marginTop: 8, textAlign: "center" },
+  daysLeftBadge: { marginTop: 14, backgroundColor: "#ffffff33", paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
+  daysLeftText: { color: "#fff", fontSize: 14, fontWeight: "700" },
+
+  section: { marginBottom: 28 },
   sectionTitle: {
     fontSize: 13,
-    fontWeight: "600",
+    fontWeight: "700",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginHorizontal: 20,
-    marginBottom: 8,
+    marginBottom: 10,
+    opacity: 0.8,
+  },
+  groupCard: {
+    marginHorizontal: 20,
+    borderRadius: 14,
+    borderWidth: 1,
+    overflow: "hidden",
   },
   optionItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
   },
-  optionLabel: { fontSize: 16, fontWeight: "500" },
-  optionSub: { fontSize: 12, marginTop: 2 },
+  optionLabel: { fontSize: 16, fontWeight: "600" },
+  optionSub: { fontSize: 13, marginTop: 2, opacity: 0.8 },
+
   dateContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  dateText: { fontSize: 16, fontWeight: "500" },
-  dateButton: {
+    paddingVertical: 14,
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
   },
-  dateButtonText: { color: "#fff", fontSize: 13, fontWeight: "600" },
+  dateButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  dateButtonText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+
   timeSelector: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  timeSelectorLabel: { fontSize: 16, fontWeight: "500" },
-  timeSelectorValue: { fontSize: 16, fontWeight: "600" },
+  timeSelectorValue: { fontSize: 16, fontWeight: "700" },
+  
   timePickerContainer: {
     marginHorizontal: 20,
-    borderRadius: 12,
+    marginTop: 8,
+    borderRadius: 14,
+    borderWidth: 1,
     overflow: "hidden",
   },
-  timeOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-  },
+  timeOption: { paddingVertical: 12, paddingHorizontal: 16 },
   timeOptionText: { fontSize: 15 },
+
   switchItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
   },
-  switchLabel: { fontSize: 16, fontWeight: "500" },
-  switchSub: { fontSize: 12, marginTop: 2 },
-  saveButton: {
-    marginHorizontal: 20,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    marginTop: 8,
-  },
+  saveButton: { marginHorizontal: 20, paddingVertical: 16, borderRadius: 14, alignItems: "center", marginTop: 8 },
   saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
 });
 

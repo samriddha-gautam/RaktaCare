@@ -1,6 +1,7 @@
 import AuthForm from "@/components/ui/AuthForm";
 import ProfileView from "@/components/ui/ProfileView";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { useRouter } from "expo-router";
 import React, { useRef } from "react";
@@ -16,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const Profile = () => {
   const router = useRouter();
+  const { theme } = useTheme();
 
   const {
     user,
@@ -68,35 +70,39 @@ const Profile = () => {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#DC2626" />
-        <Text style={styles.loadingText}>Loading...</Text>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>
+          Loading…
+        </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView style={styles.container}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]}>
+      <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
         {/* Header with back arrow */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.colors.surface, borderBottomColor: theme.colors.border }]}>
           <TouchableOpacity
             onPress={() => router.push("/(tabs)")}
             style={styles.backButton}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
           >
-            <Text style={styles.backButtonText}>←</Text>
+            <Text style={[styles.backButtonText, { color: theme.colors.primary }]}>←</Text>
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>
+          <Text style={[styles.headerTitle, { color: theme.colors.text }]}>
             {isAuthenticated ? "Profile" : "Welcome"}
           </Text>
 
           <View style={styles.headerRightSpacer} />
-          {isAuthenticated && <View style={styles.headerAccent} />}
+          {isAuthenticated && (
+            <View style={[styles.headerAccent, { backgroundColor: theme.colors.primary }]} />
+          )}
         </View>
 
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: theme.colors.background }]}>
           {isAuthenticated ? (
             <ProfileView
               user={user}
@@ -105,16 +111,16 @@ const Profile = () => {
               onRefresh={refreshUserData}
               onLogout={handleLogout}
               loading={authLoading}
-              accentColor="#DC2626"
-              backgroundColor="#FEF2F2"
+              accentColor={theme.colors.primary}
+              backgroundColor={theme.colors.primaryLight}
             />
           ) : (
             <AuthForm
               onLogin={handleLogin}
               onSignup={handleSignUp}
               loading={authLoading}
-              accentColor="#DC2626"
-              backgroundColor="#FEF2F2"
+              accentColor={theme.colors.primary}
+              backgroundColor={theme.colors.primaryLight}
             />
           )}
         </View>
@@ -130,27 +136,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: "#6B7280",
   },
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: "#FAFAFA",
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
     position: "relative",
     flexDirection: "row",
     alignItems: "center",
@@ -165,12 +165,10 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#DC2626",
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#1F2937",
     textAlign: "center",
   },
   headerRightSpacer: {
@@ -184,12 +182,10 @@ const styles = StyleSheet.create({
     marginLeft: -20,
     width: 40,
     height: 3,
-    backgroundColor: "#DC2626",
     borderRadius: 2,
   },
   content: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#FFFFFF",
   },
 });

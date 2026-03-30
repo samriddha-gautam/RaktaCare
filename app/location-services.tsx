@@ -10,7 +10,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   SafeAreaView,
-  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -89,23 +88,33 @@ const LocationServices: React.FC = () => {
     }
   };
 
-  const save = async (next: LocationSettings) => {
-    setSettings(next);
+  // ✅ Always update from latest state (prevents stale state bugs)
+  const updateSettings = async (patch: Partial<LocationSettings>) => {
+    let nextValue: LocationSettings = DEFAULT_SETTINGS;
+
+    setSettings((prev) => {
+      nextValue = { ...prev, ...patch };
+      return nextValue;
+    });
+
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextValue));
     } catch (e) {
       console.log("Failed to save location settings", e);
     }
 
     if (isAuthenticated) {
-      await persistRemoteUserLocationSettings(next);
+      await persistRemoteUserLocationSettings(nextValue);
     }
+
+    return nextValue;
   };
 
-  const syncDeviceLocationStatus = async (base?: LocationSettings) => {
+  const syncDeviceLocationStatus = async () => {
     try {
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       const perm = await Location.getForegroundPermissionsAsync();
+
       const permissionStatus =
         perm.status === "granted"
           ? "granted"
@@ -113,17 +122,11 @@ const LocationServices: React.FC = () => {
           ? "denied"
           : "undetermined";
 
-      const current = base ?? settings;
-      
-      // ✅ FIX: Do not overwrite the user preference in storage with device status.
-      // Only update the live state so the UI reflects the current reality,
-      // but keep the user's "desire" to have location enabled in AsyncStorage.
-      setSettings(prev => ({
-        ...prev,
-        ...current,
+      // ✅ Update only status fields; do NOT flip user setting or erase lastKnownLocation
+      await updateSettings({
         servicesEnabled,
         permissionStatus,
-      }));
+      });
     } catch (e) {
       console.log("syncDeviceLocationStatus error", e);
     }
@@ -132,6 +135,7 @@ const LocationServices: React.FC = () => {
   useEffect(() => {
     (async () => {
       let merged = DEFAULT_SETTINGS;
+
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
@@ -145,23 +149,22 @@ const LocationServices: React.FC = () => {
               50
             ),
           };
-          setSettings(merged);
-          setRadiusInput(String(merged.emergencyRadiusKm));
-        } else {
-          setSettings(merged);
-          setRadiusInput(String(merged.emergencyRadiusKm));
         }
+
+        setSettings(merged);
+        setRadiusInput(String(merged.emergencyRadiusKm));
       } catch (e) {
         console.log("Failed to load location settings", e);
         setSettings(merged);
         setRadiusInput(String(merged.emergencyRadiusKm));
       } finally {
-        await syncDeviceLocationStatus(merged);
+        await syncDeviceLocationStatus();
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const requestPermissionAndFetchLocation = async () => {
+  const requestPermissionAndFetchLocation = async (mode: AccuracyMode) => {
     const servicesEnabled = await Location.hasServicesEnabledAsync();
 
     if (!servicesEnabled) {
@@ -185,30 +188,26 @@ const LocationServices: React.FC = () => {
     }
 
     const accuracy =
-      settings.accuracyMode === "high"
-        ? Location.Accuracy.Highest
-        : Location.Accuracy.Balanced;
+      mode === "high" ? Location.Accuracy.Highest : Location.Accuracy.Balanced;
 
     const pos = await Location.getCurrentPositionAsync({ accuracy });
-
-    const lastKnownLocation = {
-      lat: pos.coords.latitude,
-      lng: pos.coords.longitude,
-      accuracy: pos.coords.accuracy ?? null,
-      updatedAt: new Date().toISOString(),
-    };
 
     return {
       granted: true as const,
       status,
       servicesEnabled,
-      lastKnownLocation,
+      lastKnownLocation: {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        accuracy: pos.coords.accuracy ?? null,
+        updatedAt: new Date().toISOString(),
+      },
     };
   };
 
   const handleToggleLocation = async (value: boolean) => {
     if (!value) {
-      await save({ ...settings, locationEnabled: false });
+      await updateSettings({ locationEnabled: false });
       return;
     }
 
@@ -224,14 +223,14 @@ const LocationServices: React.FC = () => {
       return;
     }
 
-    await save({ ...settings, locationEnabled: true });
+    // Optimistic ON
+    await updateSettings({ locationEnabled: true });
 
     try {
-      const result = await requestPermissionAndFetchLocation();
+      const result = await requestPermissionAndFetchLocation(settings.accuracyMode);
 
       if (!result.granted) {
-        await save({
-          ...settings,
+        await updateSettings({
           locationEnabled: false,
           permissionStatus: result.status as any,
           servicesEnabled: (result as any).servicesEnabled,
@@ -251,15 +250,12 @@ const LocationServices: React.FC = () => {
         return;
       }
 
-      const next: LocationSettings = {
-        ...settings,
+      await updateSettings({
         locationEnabled: true,
         permissionStatus: "granted",
         servicesEnabled: result.servicesEnabled,
         lastKnownLocation: result.lastKnownLocation,
-      };
-
-      await save(next);
+      });
 
       Alert.alert(
         "Location enabled",
@@ -268,7 +264,7 @@ const LocationServices: React.FC = () => {
     } catch (e) {
       console.log("Location permission error:", e);
       Alert.alert("Location error", "Could not access location. Please try again.");
-      await save({ ...settings, locationEnabled: false });
+      await updateSettings({ locationEnabled: false });
     }
   };
 
@@ -327,7 +323,7 @@ const LocationServices: React.FC = () => {
     settings.permissionStatus,
     settings.servicesEnabled,
     isAuthenticated,
-    theme
+    theme,
   ]);
 
   const applyRadius = async () => {
@@ -339,13 +335,13 @@ const LocationServices: React.FC = () => {
     }
     const nextRadius = clamp(Math.round(parsed), 1, 50);
     setRadiusInput(String(nextRadius));
-
-    await save({ ...settings, emergencyRadiusKm: nextRadius });
+    await updateSettings({ emergencyRadiusKm: nextRadius });
   };
 
   const refreshNow = async () => {
     try {
       await syncDeviceLocationStatus();
+
       if (!settings.locationEnabled) {
         Alert.alert("Location is OFF", "Turn on location first.");
         return;
@@ -353,37 +349,46 @@ const LocationServices: React.FC = () => {
 
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
-        await save({ ...settings, locationEnabled: false, servicesEnabled: false });
+        await updateSettings({ locationEnabled: false, servicesEnabled: false });
         Alert.alert("GPS is OFF", "Please turn on GPS in device settings.");
         return;
       }
 
       const perm = await Location.getForegroundPermissionsAsync();
       if (perm.status !== "granted") {
-        await save({ ...settings, locationEnabled: false, permissionStatus: perm.status as any });
+        await updateSettings({
+          locationEnabled: false,
+          permissionStatus: perm.status as any,
+        });
         Alert.alert("Permission required", "Enable location manually in settings.");
         return;
       }
 
-      const accuracy = settings.accuracyMode === "high" ? Location.Accuracy.Highest : Location.Accuracy.Balanced;
-      const pos = await Location.getCurrentPositionAsync({ accuracy });
+      const result = await requestPermissionAndFetchLocation(settings.accuracyMode);
+      if (!result.granted) {
+        Alert.alert("Error", "Could not access location.");
+        return;
+      }
 
-      const next: LocationSettings = {
-        ...settings,
-        lastKnownLocation: {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          accuracy: pos.coords.accuracy ?? null,
-          updatedAt: new Date().toISOString(),
-        },
-      };
+      await updateSettings({
+        permissionStatus: "granted",
+        servicesEnabled: result.servicesEnabled,
+        lastKnownLocation: result.lastKnownLocation,
+      });
 
-      await save(next);
       Alert.alert("Updated", "Your location has been refreshed.");
     } catch (e) {
+      console.log("refresh error:", e);
       Alert.alert("Error", "Could not refresh location.");
     }
   };
+
+  const gpsLabel =
+    settings.servicesEnabled === undefined
+      ? "UNKNOWN"
+      : settings.servicesEnabled
+      ? "ENABLED"
+      : "DISABLED";
 
   return (
     <SafeAreaView style={globalStyles.container}>
@@ -405,12 +410,19 @@ const LocationServices: React.FC = () => {
           Location Services
         </Text>
         <Text style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
-           Match with emergency donors based on your current vicinity.
+          Match with emergency donors based on your current vicinity.
         </Text>
 
         {!isAuthenticated && (
-          <View style={[styles.loginBanner, { backgroundColor: theme.colors.primaryLight }]}>
-            <Text style={[styles.loginBannerTitle, { color: theme.colors.primary }]}>Login required</Text>
+          <View
+            style={[
+              styles.loginBanner,
+              { backgroundColor: theme.colors.primaryLight },
+            ]}
+          >
+            <Text style={[styles.loginBannerTitle, { color: theme.colors.primary }]}>
+              Login required
+            </Text>
             <Text style={[styles.loginBannerText, { color: theme.colors.textSecondary }]}>
               Location matching is linked to your verified profile for trust and safety.
             </Text>
@@ -423,73 +435,169 @@ const LocationServices: React.FC = () => {
           </View>
         )}
 
-        {/* Status Card */}
         <View style={[styles.statusCard, { backgroundColor: statusConfig.bg }]}>
           <Text style={styles.statusEmoji}>{statusConfig.emoji}</Text>
-          <Text style={[styles.statusTitle, { color: statusConfig.color }]}>{statusConfig.title}</Text>
-          <Text style={[styles.statusSubtitle, { color: theme.colors.textSecondary }]}>{statusConfig.subtitle}</Text>
+          <Text style={[styles.statusTitle, { color: statusConfig.color }]}>
+            {statusConfig.title}
+          </Text>
+          <Text style={[styles.statusSubtitle, { color: theme.colors.textSecondary }]}>
+            {statusConfig.subtitle}
+          </Text>
         </View>
 
-        {/* Settings Group */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Permissions</Text>
-          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-             <View style={[styles.row, { borderBottomColor: theme.colors.border, borderBottomWidth: 1 }]}>
-                <View style={{ flex: 1 }}>
-                    <Text style={[styles.rowTitle, { color: theme.colors.text }]}>Track My Location</Text>
-                    <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>Enable matching with local alerts</Text>
-                </View>
-                <Switch
-                    value={settings.locationEnabled}
-                    onValueChange={handleToggleLocation}
-                    trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-                    thumbColor={settings.locationEnabled ? "#fff" : "#f4f3f4"}
+          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
+            Permissions
+          </Text>
+
+          <View
+            style={[
+              styles.groupCard,
+              { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+            ]}
+          >
+            <View style={[styles.row, { borderBottomColor: theme.colors.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowTitle, { color: theme.colors.text }]}>
+                  Track My Location
+                </Text>
+                <Text style={[styles.rowDesc, { color: theme.colors.textSecondary }]}>
+                  Enable matching with local alerts
+                </Text>
+              </View>
+              <Switch
+                value={settings.locationEnabled}
+                onValueChange={handleToggleLocation}
+                trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                thumbColor={settings.locationEnabled ? "#fff" : "#f4f3f4"}
+              />
+            </View>
+
+            <View style={styles.radiusRow}>
+              <Text style={[styles.radiusLabel, { color: theme.colors.text }]}>
+                Emergency Radius
+              </Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  value={radiusInput}
+                  onChangeText={setRadiusInput}
+                  keyboardType="numeric"
+                  onBlur={applyRadius}
+                  style={[
+                    styles.radiusInput,
+                    {
+                      color: theme.colors.text,
+                      borderColor: theme.colors.border,
+                      backgroundColor: theme.colors.background,
+                    },
+                  ]}
                 />
-             </View>
-             
-             <View style={styles.radiusRow}>
-                <Text style={[styles.radiusLabel, { color: theme.colors.text }]}>Emergency Radius</Text>
-                <View style={styles.inputWrapper}>
-                    <TextInput
-                        value={radiusInput}
-                        onChangeText={setRadiusInput}
-                        keyboardType="numeric"
-                        onBlur={applyRadius}
-                        style={[styles.radiusInput, { color: theme.colors.text, borderColor: theme.colors.border, backgroundColor: theme.colors.background }]}
-                    />
-                    <Text style={[styles.unitText, { color: theme.colors.textSecondary }]}>km</Text>
-                </View>
-             </View>
+                <Text style={[styles.unitText, { color: theme.colors.textSecondary }]}>
+                  km
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* Details Group */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>Service Details</Text>
-          <View style={[styles.groupCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border, padding: 16 }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
+            Service Details
+          </Text>
+
+          <View
+            style={[
+              styles.groupCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                padding: 16,
+              },
+            ]}
+          >
             <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Device GPS</Text>
-                <Text style={[styles.detailValue, { color: settings.servicesEnabled ? theme.colors.success : theme.colors.danger }]}>
-                    {settings.servicesEnabled ? "ENABLED" : "DISABLED"}
-                </Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>
+                Device GPS
+              </Text>
+              <Text
+                style={[
+                  styles.detailValue,
+                  { color: gpsLabel === "ENABLED" ? theme.colors.success : theme.colors.danger },
+                ]}
+              >
+                {gpsLabel}
+              </Text>
             </View>
+
             <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Permission</Text>
-                <Text style={[styles.detailValue, { color: settings.permissionStatus === 'granted' ? theme.colors.success : theme.colors.text }]}>
-                    {settings.permissionStatus?.toUpperCase() ?? "UNKNOWN"}
-                </Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>
+                Permission
+              </Text>
+              <Text
+                style={[
+                  styles.detailValue,
+                  {
+                    color:
+                      settings.permissionStatus === "granted"
+                        ? theme.colors.success
+                        : theme.colors.text,
+                  },
+                ]}
+              >
+                {settings.permissionStatus?.toUpperCase() ?? "UNKNOWN"}
+              </Text>
             </View>
+
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
             <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Last Refresh</Text>
-                <Text style={[styles.detailValue, { color: theme.colors.text }]}>
-                    {settings.lastKnownLocation?.updatedAt ? new Date(settings.lastKnownLocation.updatedAt).toLocaleTimeString() : "Never"}
-                </Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>
+                Latitude
+              </Text>
+              <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                {settings.lastKnownLocation?.lat?.toFixed(6) ?? "—"}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>
+                Longitude
+              </Text>
+              <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                {settings.lastKnownLocation?.lng?.toFixed(6) ?? "—"}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>
+                Accuracy
+              </Text>
+              <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                {settings.lastKnownLocation?.accuracy ?? "—"}
+              </Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>
+                Last Refresh
+              </Text>
+              <Text style={[styles.detailValue, { color: theme.colors.text }]}>
+                {settings.lastKnownLocation?.updatedAt
+                  ? new Date(settings.lastKnownLocation.updatedAt).toLocaleString()
+                  : "Never"}
+              </Text>
             </View>
 
             <TouchableOpacity
               onPress={refreshNow}
-              style={[styles.refreshBtn, { backgroundColor: settings.locationEnabled ? theme.colors.primary : theme.colors.textMuted }]}
+              style={[
+                styles.refreshBtn,
+                {
+                  backgroundColor: settings.locationEnabled
+                    ? theme.colors.primary
+                    : theme.colors.textMuted,
+                },
+              ]}
               disabled={!settings.locationEnabled}
               activeOpacity={0.8}
             >
@@ -524,9 +632,17 @@ const styles = StyleSheet.create({
 
   section: { marginBottom: 28 },
   sectionTitle: { fontSize: 13, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginHorizontal: 20, marginBottom: 10, opacity: 0.8 },
+
   groupCard: { marginHorizontal: 20, borderRadius: 14, borderWidth: 1, overflow: "hidden" },
-  
-  row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 14, paddingHorizontal: 16 },
+
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+  },
   rowTitle: { fontSize: 16, fontWeight: "600" },
   rowDesc: { fontSize: 12, marginTop: 2, opacity: 0.7 },
 
@@ -540,7 +656,7 @@ const styles = StyleSheet.create({
   detailLabel: { fontSize: 14, fontWeight: "500" },
   detailValue: { fontSize: 14, fontWeight: "700" },
   divider: { height: 1, marginVertical: 12 },
-  
+
   refreshBtn: { marginTop: 12, paddingVertical: 14, borderRadius: 12, alignItems: "center" },
   refreshBtnText: { color: "#fff", fontWeight: "700", fontSize: 15 },
 });

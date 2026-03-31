@@ -3,7 +3,14 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { router } from "expo-router";
 import React, { useCallback, useRef } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const RequestsTab = () => {
   const { theme } = useTheme();
@@ -22,12 +29,25 @@ const RequestsTab = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingTop: DEFAULT_HEADER_HEIGHT, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingTop: DEFAULT_HEADER_HEIGHT,
+          paddingBottom: 24,
+        }}
       >
         <View style={local.container}>
           {/* HERO */}
-          <View style={[local.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <Text style={[local.title, { color: theme.colors.text }]}>Requests Hub</Text>
+          <View
+            style={[
+              local.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[local.title, { color: theme.colors.text }]}>
+              Requests Hub
+            </Text>
             <Text style={[local.subtitle, { color: theme.colors.textSecondary }]}>
               Find blood requests, manage donor settings, and take action quickly.
             </Text>
@@ -44,14 +64,26 @@ const RequestsTab = () => {
                 style={[local.secondaryBtn, { borderColor: theme.colors.border }]}
                 onPress={() => router.push("/location-services")}
               >
-                <Text style={[local.secondaryBtnText, { color: theme.colors.text }]}>Location</Text>
+                <Text style={[local.secondaryBtnText, { color: theme.colors.text }]}>
+                  Location
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* ACTIVE REQUESTS (placeholder section) */}
-          <View style={[local.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <Text style={[local.sectionTitle, { color: theme.colors.text }]}>Active Requests</Text>
+          <View
+            style={[
+              local.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[local.sectionTitle, { color: theme.colors.text }]}>
+              Active Requests
+            </Text>
             <Text style={[local.small, { color: theme.colors.textSecondary }]}>
               (Next) Show nearby + matching blood group requests here.
             </Text>
@@ -67,37 +99,72 @@ const RequestsTab = () => {
           </View>
 
           {/* QUICK ACTIONS */}
-          <View style={[local.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <Text style={[local.sectionTitle, { color: theme.colors.text }]}>Quick Actions</Text>
+          <View
+            style={[
+              local.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[local.sectionTitle, { color: theme.colors.text }]}>
+              Quick Actions
+            </Text>
 
             <TouchableOpacity
               style={[local.linkBtn, { borderColor: theme.colors.border }]}
               onPress={() => router.push("/eligibility-settings")}
             >
-              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>Eligibility Settings</Text>
+              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>
+                Eligibility Settings
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[local.linkBtn, { borderColor: theme.colors.border }]}
               onPress={() => router.push("/donation-reminders")}
             >
-              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>Donation Reminders</Text>
+              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>
+                Donation Reminders
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[local.linkBtn, { borderColor: theme.colors.border }]}
               onPress={() => router.push("/location-services")}
             >
-              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>Location Services</Text>
+              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>
+                Location Services
+              </Text>
             </TouchableOpacity>
           </View>
 
-          {/* NEARBY (placeholder) */}
-          <View style={[local.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <Text style={[local.sectionTitle, { color: theme.colors.text }]}>Nearby</Text>
-            <Text style={[local.small, { color: theme.colors.textSecondary }]}>
-              (Next) Add a list/map of nearby blood banks & hospitals here.
+          {/* NEARBY */}
+          <View
+            style={[
+              local.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={[local.sectionTitle, { color: theme.colors.text }]}>
+              Nearby
             </Text>
+            <Text style={[local.small, { color: theme.colors.textSecondary }]}>
+              Find nearby hospitals around your location (map + list).
+            </Text>
+
+            <TouchableOpacity
+              style={[local.linkBtn, { borderColor: theme.colors.border }]}
+              onPress={() => router.push("/nearby")}
+            >
+              <Text style={[local.linkBtnText, { color: theme.colors.text }]}>
+                Open Nearby
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

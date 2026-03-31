@@ -15,7 +15,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { fetchNearbyHospitals, NearbyPlace } from "@/services/osm/overpass";
+import { fetchNearbyHospitals, NearbyPlace } from "@/services/firebase/osm/overpass";
 
 export default function Nearby() {
   const { theme } = useTheme();

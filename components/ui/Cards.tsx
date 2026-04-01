@@ -1,16 +1,16 @@
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useBloodRequests } from "@/hooks/useBloodRequests";
+import { createGlobalStyles } from "@/styles/globalStyles";
+import React, { useMemo } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Alert,
 } from "react-native";
-import React, { useMemo } from "react";
-import { createGlobalStyles } from "@/styles/globalStyles";
-import { useTheme } from "@/contexts/ThemeContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { useBloodRequests } from "@/hooks/useBloodRequests";
 
 interface CardsProps {
   filterBloodType?: string;
@@ -19,28 +19,30 @@ interface CardsProps {
 const Cards = ({ filterBloodType = "" }: CardsProps) => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
-  const { user } = useAuth();
+
+  // IMPORTANT:
+  // We must not subscribe to Firestore when auth state is "No user",
+  // otherwise Firestore rules (signedIn()) will throw permission errors.
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const enabled = !authLoading && isAuthenticated && !!user?.uid;
+
   const {
     displayRequests,
     activeRequests,
     isLoading,
     error,
     toggleRequestStatus,
-  } = useBloodRequests();
+  } = useBloodRequests(enabled);
 
   const filteredRequests = useMemo(() => {
-    if (!filterBloodType) {
-      return displayRequests;
-    }
+    if (!filterBloodType) return displayRequests;
     return displayRequests.filter(
       (request) => request.bloodType === filterBloodType
     );
   }, [displayRequests, filterBloodType]);
 
   const filteredActiveCount = useMemo(() => {
-    if (!filterBloodType) {
-      return activeRequests.length;
-    }
+    if (!filterBloodType) return activeRequests.length;
     return activeRequests.filter(
       (request) => request.bloodType === filterBloodType
     ).length;
@@ -48,11 +50,10 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
 
   const handleToggleStatus = async (
     requestId: string,
-    currentStatus: "active" | "completed",
-    userName: string
+    currentStatus: "active" | "completed"
   ) => {
     const action = currentStatus === "active" ? "complete" : "reactivate";
-    
+
     Alert.alert(
       `${action === "complete" ? "Mark as Completed" : "Reactivate Request"}`,
       `Do you want to ${action} this request?`,
@@ -65,7 +66,9 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
             if (result.success) {
               Alert.alert(
                 "Success",
-                `Request ${action === "complete" ? "marked as completed" : "reactivated"} successfully!`
+                `Request ${
+                  action === "complete" ? "marked as completed" : "reactivated"
+                } successfully!`
               );
             } else {
               Alert.alert("Error", result.error || "Failed to update status");
@@ -80,15 +83,33 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
     if (!timestamp) return "Just now";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    const diffInMins = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+    const diffInHours = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    );
+    const diffInMins = Math.floor(
+      (now.getTime() - date.getTime()) / (1000 * 60)
+    );
+
     if (diffInHours < 1) return `${diffInMins} mins ago`;
     if (diffInHours < 24) return `${diffInHours}h ago`;
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays === 1) return "Yesterday";
     return `${diffInDays} days ago`;
   };
+
+  // If user is not logged in, don't show errors; just show a friendly message.
+  if (!enabled) {
+    return (
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, gstyles.text]}>Recent Requests</Text>
+        <View style={styles.emptyContainer}>
+          <Text style={[gstyles.text, styles.emptyText]}>
+            Please login to view blood requests.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -118,10 +139,9 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
         <Text style={[styles.sectionTitle, gstyles.text]}>Recent Requests</Text>
         <View style={styles.emptyContainer}>
           <Text style={[gstyles.text, styles.emptyText]}>
-            {filterBloodType 
+            {filterBloodType
               ? `No "${filterBloodType}" requests available right now`
-              : "No blood requests available"
-            }
+              : "No blood requests available"}
           </Text>
         </View>
       </View>
@@ -149,14 +169,21 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
           ]}
           activeOpacity={0.8}
         >
-          <View style={[styles.recentImage, { backgroundColor: theme.colors.primary }]}>
+          <View
+            style={[
+              styles.recentImage,
+              { backgroundColor: theme.colors.primary },
+            ]}
+          >
             <Text style={styles.bloodTypeInImage}>{request.bloodType}</Text>
           </View>
+
           <View style={styles.recentContent}>
             <View style={styles.headerRow}>
               <Text style={[styles.recentTitle, { color: theme.colors.text }]}>
                 {request.bloodType}
               </Text>
+
               <View
                 style={[
                   styles.statusBadge,
@@ -171,28 +198,33 @@ const Cards = ({ filterBloodType = "" }: CardsProps) => {
                 <Text style={styles.statusText}>{request.status}</Text>
               </View>
             </View>
+
             <Text
               style={[styles.recentDescription, { color: theme.colors.text }]}
               numberOfLines={2}
             >
               {request.description}
             </Text>
-            <Text style={[styles.recentLocation, { color: theme.colors.primary }]}>
+
+            <Text
+              style={[styles.recentLocation, { color: theme.colors.primary }]}
+            >
               {request.location}
             </Text>
+
             <View style={styles.footerRow}>
               <Text style={[gstyles.textSecondary, styles.timeText]}>
                 {formatDate(request.createdAt)}
               </Text>
+
               {user && user.uid === request.userId && (
                 <TouchableOpacity
-                  style={[styles.toggleButton, { backgroundColor: theme.colors.primary }]}
+                  style={[
+                    styles.toggleButton,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
                   onPress={() =>
-                    handleToggleStatus(
-                      request.id,
-                      request.status,
-                      request.userName
-                    )
+                    handleToggleStatus(request.id, request.status)
                   }
                 >
                   <Text style={styles.toggleButtonText}>

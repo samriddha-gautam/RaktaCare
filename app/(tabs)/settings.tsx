@@ -1,20 +1,22 @@
 import Button from "@/components/common/Button";
 import ThemeToggle from "@/components/common/ThemeToggle";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
+import { getUserProfile } from "@/services/firebase/usersRepo";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter, useFocusEffect } from "expo-router";
-import React, { useEffect } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React from "react";
 import {
-    Alert,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const NOTIF_PREFS_KEY = "notificationPreferences";
@@ -38,10 +40,13 @@ const Settings: React.FC = () => {
   const router = useRouter();
 
   const { logout, loading: authLoading } = useAuthActions();
+  const { user, profileData, setProfileData } = useAuth();
 
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
   const [donationReminders, setDonationReminders] = React.useState(false);
   const [locationServices, setLocationServices] = React.useState(false);
+
+  const isAdmin = profileData?.role === "admin";
 
   const loadFlags = React.useCallback(async () => {
     const notifEnabled = await readStoredFlag(
@@ -65,10 +70,23 @@ const Settings: React.FC = () => {
     setLocationServices(locEnabled);
   }, []);
 
+  const refreshProfile = React.useCallback(async () => {
+    try {
+      if (!user?.uid) return;
+      const latest = await getUserProfile(user.uid);
+      if (latest) {
+        await setProfileData(latest);
+      }
+    } catch (e) {
+      console.log("Failed to refresh profile", e);
+    }
+  }, [setProfileData, user?.uid]);
+
   useFocusEffect(
     React.useCallback(() => {
       loadFlags();
-    }, [loadFlags])
+      refreshProfile();
+    }, [loadFlags, refreshProfile])
   );
 
   const SettingSection = ({
@@ -82,8 +100,13 @@ const Settings: React.FC = () => {
       <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
         {title}
       </Text>
-      <View style={[styles.sectionContent, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-         {children}
+      <View
+        style={[
+          styles.sectionContent,
+          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+        ]}
+      >
+        {children}
       </View>
     </View>
   );
@@ -93,7 +116,6 @@ const Settings: React.FC = () => {
     value,
     onValueChange,
     showSwitch = false,
-    isFirst = false,
     isLast = false,
     onPress,
   }: {
@@ -101,74 +123,70 @@ const Settings: React.FC = () => {
     value?: boolean;
     onValueChange?: (value: boolean) => void;
     showSwitch?: boolean;
-    isFirst?: boolean;
     isLast?: boolean;
     onPress?: () => void;
   }) => {
     const content = (
-        <View
-          style={[
-            styles.settingItem,
-            {
-              borderBottomColor: theme.colors.border,
-              borderBottomWidth: isLast ? 0 : 1,
-            },
-          ]}
-        >
-          <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
-            {label}
+      <View
+        style={[
+          styles.settingItem,
+          {
+            borderBottomColor: theme.colors.border,
+            borderBottomWidth: isLast ? 0 : 1,
+          },
+        ]}
+      >
+        <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+          {label}
+        </Text>
+        {showSwitch ? (
+          <Switch
+            value={value}
+            onValueChange={onValueChange}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
+            thumbColor={value ? "#fff" : "#f4f3f4"}
+          />
+        ) : (
+          <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+            ›
           </Text>
-          {showSwitch ? (
-            <Switch
-              value={value}
-              onValueChange={onValueChange}
-              trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
-              }}
-              thumbColor={value ? "#fff" : "#f4f3f4"}
-            />
-          ) : (
-            <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
-              ›
-            </Text>
-          )}
-        </View>
+        )}
+      </View>
     );
 
     if (onPress) {
-        return (
-            <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-                {content}
-            </TouchableOpacity>
-        );
+      return (
+        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+          {content}
+        </TouchableOpacity>
+      );
     }
     return content;
   };
 
   const handleToggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
-    
-    // If turning off master notifications, also turn off dependent reminders
-    if (!value) {
-      setDonationReminders(false);
-    }
+    if (!value) setDonationReminders(false);
 
     try {
       const raw = await AsyncStorage.getItem(NOTIF_PREFS_KEY);
       const parsed = raw ? JSON.parse(raw) : {};
-      
+
       const next = {
         ...parsed,
         notificationsEnabled: value,
-        // If master is off, sub-settings should also be disabled in storage
-        ...(value === false ? {
-          emergencyRequestsEnabled: false,
-          donationRemindersEnabled: false,
-        } : {}),
+        ...(value === false
+          ? {
+              emergencyRequestsEnabled: false,
+              donationRemindersEnabled: false,
+            }
+          : {}),
         lastUpdatedAt: new Date().toISOString(),
       };
-      
+
       await AsyncStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(next));
     } catch (e) {
       console.log("Failed to persist notificationsEnabled", e);
@@ -231,17 +249,10 @@ const Settings: React.FC = () => {
   return (
     <SafeAreaView style={globalStyles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <Text style={[styles.header, { color: theme.colors.text }]}>
-          Settings
-        </Text>
+        <Text style={[styles.header, { color: theme.colors.text }]}>Settings</Text>
 
         <SettingSection title="Appearance">
-          <View
-            style={[
-              styles.settingItem,
-              { borderBottomWidth: 0 },
-            ]}
-          >
+          <View style={[styles.settingItem, { borderBottomWidth: 0 }]}>
             <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
               Dark Mode
             </Text>
@@ -255,7 +266,6 @@ const Settings: React.FC = () => {
             value={notificationsEnabled}
             onValueChange={handleToggleNotifications}
             showSwitch={true}
-            isFirst={true}
           />
           <SettingItem
             label="Donation Reminders"
@@ -263,8 +273,8 @@ const Settings: React.FC = () => {
             onValueChange={handleToggleDonationReminders}
             showSwitch={true}
           />
-          <SettingItem 
-            label="Notification Preferences" 
+          <SettingItem
+            label="Notification Preferences"
             onPress={() => router.push("/notification-preferences")}
             isLast={true}
           />
@@ -276,32 +286,48 @@ const Settings: React.FC = () => {
             value={locationServices}
             onValueChange={handleToggleLocationServices}
             showSwitch={true}
-            isFirst={true}
           />
-          <SettingItem 
-            label="Privacy Policy" 
+          <SettingItem
+            label="Privacy Policy"
             onPress={() => router.push("/privacy-policy")}
             isLast={true}
           />
         </SettingSection>
 
         <SettingSection title="Donation Profile">
-          <SettingItem 
-            label="Eligibility Criteria" 
+          <SettingItem
+            label="Eligibility Criteria"
             onPress={() => router.push("/eligibility-settings")}
-            isFirst={true}
             isLast={true}
           />
         </SettingSection>
 
-        <SettingSection title="Account">
-          <SettingItem 
-            label="Edit Profile" 
-            onPress={() => router.push("/edit-profile")}
-            isFirst={true}
+        <SettingSection title="Verification">
+          <SettingItem
+            label={
+              profileData?.verified
+                ? "Donor Verification (Verified)"
+                : "Donor Verification"
+            }
+            onPress={() => router.push("/verify-donor")}
+            isLast={!isAdmin}
           />
-          <SettingItem 
-            label="Change Password" 
+          {isAdmin ? (
+            <SettingItem
+              label="Admin: Verification Requests"
+              onPress={() => router.push("/admin/verifications")}
+              isLast={true}
+            />
+          ) : null}
+        </SettingSection>
+
+        <SettingSection title="Account">
+          <SettingItem
+            label="Edit Profile"
+            onPress={() => router.push("/edit-profile")}
+          />
+          <SettingItem
+            label="Change Password"
             onPress={() => router.push("/change-password")}
             isLast={true}
           />

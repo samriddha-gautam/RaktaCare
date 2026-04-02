@@ -20,8 +20,15 @@ export interface BloodRequest {
   userId: string;
   userName: string;
   userEmail: string | null;
-  status: "active" | "completed";
+
+  // ✅ include "deleted" because deleteRequest() writes it
+  status: "active" | "completed" | "deleted";
+
   createdAt: Timestamp;
+
+  // optional fields written by update/delete
+  updatedAt?: Timestamp;
+  deletedAt?: Timestamp;
 }
 
 export const useBloodRequests = (enabled: boolean) => {
@@ -34,10 +41,8 @@ export const useBloodRequests = (enabled: boolean) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(async () => {
-    // This forces both listeners to restart
     setRefreshing(true);
     setRefreshKey((k) => k + 1);
-    // give UI a moment; snapshots will set loading states
     setTimeout(() => setRefreshing(false), 500);
   }, []);
 
@@ -138,6 +143,7 @@ export const useBloodRequests = (enabled: boolean) => {
       await updateDoc(requestRef, {
         status: "deleted",
         deletedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
       });
 
       return { success: true };
@@ -147,7 +153,11 @@ export const useBloodRequests = (enabled: boolean) => {
     }
   };
 
-  const displayRequests = recentRequests.length > 0 ? recentRequests : allActiveRequests;
+  // ✅ hide deleted from UI lists
+  const displayRequestsRaw =
+    recentRequests.length > 0 ? recentRequests : allActiveRequests;
+
+  const displayRequests = displayRequestsRaw.filter((req) => req.status !== "deleted");
   const activeRequests = displayRequests.filter((req) => req.status === "active");
   const completedRequests = displayRequests.filter((req) => req.status === "completed");
 

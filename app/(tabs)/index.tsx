@@ -6,11 +6,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useBloodRequests } from "@/hooks/useBloodRequests";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import React, { useCallback, useRef, useState } from "react";
-import {
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-} from "react-native";
+import { RefreshControl, SafeAreaView, ScrollView } from "react-native";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
@@ -19,27 +15,30 @@ const HomePage: React.FC = () => {
 
   const [selectedBloodType, setSelectedBloodType] = useState<string>("");
 
-  // Enable/disable Firestore subscriptions based on auth state
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const enabled = !authLoading && isAuthenticated && !!user?.uid;
 
-  // Pull-to-refresh control comes from the hook
-  const { refreshing, refresh } = useBloodRequests(enabled);
+  const {
+    displayRequests,
+    activeRequests,
+    error, // ✅ your hook uses `error`
+    refreshing,
+    refresh,
+    toggleRequestStatus,
+  } = useBloodRequests(enabled);
+
+  const errorRequests = error ?? null;
 
   const handleScroll = useCallback((event: any) => {
     headerRef.current?.handleScroll(event);
   }, []);
 
   const handleBloodTypeSelect = (bloodType: string) => {
-    if (selectedBloodType === bloodType) {
-      setSelectedBloodType("");
-    } else {
-      setSelectedBloodType(bloodType);
-    }
+    setSelectedBloodType((prev) => (prev === bloodType ? "" : bloodType));
   };
 
   return (
-    <SafeAreaView style={[styles.container]}>
+    <SafeAreaView style={styles.container}>
       <Header ref={headerRef} headerHeight={DEFAULT_HEADER_HEIGHT} />
 
       <ScrollView
@@ -60,7 +59,15 @@ const HomePage: React.FC = () => {
           onSelectBloodType={handleBloodTypeSelect}
         />
 
-        <Cards filterBloodType={selectedBloodType} />
+        <Cards
+          filterBloodType={selectedBloodType}
+          displayRequests={displayRequests}
+          activeRequests={activeRequests}
+          isLoadingRequests={refreshing}
+          errorRequests={errorRequests}
+          toggleRequestStatus={toggleRequestStatus}
+          enabled={enabled}
+        />
       </ScrollView>
     </SafeAreaView>
   );

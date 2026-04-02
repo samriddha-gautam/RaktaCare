@@ -1,6 +1,7 @@
-import { auth } from "@/services/firebase/config";
+import { auth, db } from "@/services/firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
 const STORAGE_KEYS = {
@@ -9,12 +10,20 @@ const STORAGE_KEYS = {
   IS_AUTHENTICATED: "@is_authenticated",
 } as const;
 
+type UserRole = "requester" | "donor" | "admin";
+
 interface ProfileData {
   id?: string;
   name?: string;
   displayName?: string;
   email?: string;
   phone?: string;
+  photoURL?: string;
+
+  // ✅ important for rules/UI
+  role?: UserRole;
+
+  // allow extra fields
   [key: string]: any;
 }
 
@@ -85,13 +94,11 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   // ✅ Optimistically load cached AUTH & PROFILE data (to keep UI looking logged in)
   const loadPersistedAuthAndProfile = async () => {
     try {
-      // 1. Load Profile
       const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
       if (storedProfile) {
         setProfileDataState(JSON.parse(storedProfile));
       }
-      
-      // 2. Load Auth Status (prevent UI flicker before Firebase resolves)
+
       const cachedAuth = await AsyncStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
       if (cachedAuth === "true") {
         setIsAuthenticated(true);
@@ -125,8 +132,49 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
+  const ensureAndLoadFirestoreProfile = async (firebaseUser: User): Promise<ProfileData> => {
+    const ref = doc(db, "users", firebaseUser.uid);
+    const snap = await getDoc(ref);
+
+    // Create minimal user doc if it does not exist
+    if (!snap.exists()) {
+      const created: ProfileData = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email || "",
+        name: firebaseUser.displayName || "",
+        displayName: firebaseUser.displayName || "",
+        photoURL: firebaseUser.photoURL || "",
+        role: "requester", // ✅ default role
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(ref, created, { merge: true });
+      return created;
+    }
+
+    // Merge Firestore data with auth basics
+    const data = snap.data() as any;
+
+    // Backfill role if missing (important for existing users)
+    if (!data.role) {
+      await setDoc(ref, { role: "requester", updatedAt: serverTimestamp() }, { merge: true });
+      data.role = "requester";
+    }
+
+    const merged: ProfileData = {
+      id: firebaseUser.uid,
+      email: firebaseUser.email || data.email || "",
+      name: data.name || firebaseUser.displayName || "",
+      displayName: data.displayName || firebaseUser.displayName || "",
+      photoURL: data.photoURL || firebaseUser.photoURL || "",
+      ...data,
+    };
+
+    return merged;
+  };
+
   useEffect(() => {
-    // load cached profile and prev auth state while Firebase resolves auth session
     loadPersistedAuthAndProfile();
   }, []);
 
@@ -140,10 +188,19 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
         setIsAuthenticated(true);
         await persistUserData(firebaseUser);
 
-        // If profileData missing, try to restore cached profile or create minimal one
-        if (!profileData) {
+        // ✅ Always try to load profile from Firestore (source of truth for role)
+        try {
+          const firestoreProfile = await ensureAndLoadFirestoreProfile(firebaseUser);
+          await setProfileData(firestoreProfile);
+        } catch (e) {
+          console.log("Failed to load Firestore profile:", e);
+
+          // fallback to cached profile if Firestore fails
           const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
-          if (!storedProfile) {
+          if (storedProfile) {
+            setProfileDataState(JSON.parse(storedProfile));
+          } else {
+            // as last fallback create minimal local profile (role unknown)
             const autoProfileData: ProfileData = {
               id: firebaseUser.uid,
               email: firebaseUser.email || "",
@@ -152,12 +209,9 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
               photoURL: firebaseUser.photoURL || "",
             };
             await setProfileData(autoProfileData);
-          } else {
-            setProfileDataState(JSON.parse(storedProfile));
           }
         }
       } else {
-        // ✅ ALWAYS clear state on logout (no isLoading condition)
         setIsAuthenticated(false);
         setProfileDataState(null);
         await persistUserData(null);
@@ -168,6 +222,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     });
 
     return unsubscribe;
+    // Note: do not add profileData as dependency; it causes re-subscribe loops
   }, []);
 
   const contextValue: AuthContextType = {

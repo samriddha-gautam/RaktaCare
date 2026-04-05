@@ -59,6 +59,7 @@ const Profile = () => {
     if (!result.success && result.error) {
       shouldRedirectAfterAuth.current = false;
       Alert.alert("Login faild", result.error);
+      console.log(result.error);
       return;
     }
 

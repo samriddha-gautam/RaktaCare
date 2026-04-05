@@ -30,6 +30,7 @@ const REMINDER_TIMES = [
   "3:00 PM",
   "6:00 PM",
   "8:00 PM",
+  "9:00 PM",
 ];
 
 const DonationReminders: React.FC = () => {

@@ -1,4 +1,5 @@
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBloodRequest } from "@/hooks/useCreateBloodRequest";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -19,18 +20,40 @@ const Add = () => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
   const router = useRouter();
-  const { createBloodRequest, isSubmitting, getDefaultPhone } =
-    useBloodRequest();
+
+  const { user, isAuthenticated, profileData, isLoading } = useAuth();
+  const role = profileData?.role; // "requester" | "donor" | "admin"
+
+  const { createBloodRequest, isSubmitting, getDefaultPhone } = useBloodRequest();
 
   const [selectedBloodType, setSelectedBloodType] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [location, setLocation] = useState<string>("");
   const [contactPhone, setContactPhone] = useState<string>("");
 
-  // Set default phone on mount
+  // ✅ Guard: block donor/admin from opening this screen (UX)
+  useEffect(() => {
+    // wait until auth finishes loading, otherwise it may flash
+    if (isLoading) return;
+
+    if (!isAuthenticated || !user) {
+      Alert.alert("Please log in", "Log in to create a blood request.");
+      router.back();
+      return;
+    }
+
+    if (role === "donor" || role === "admin") {
+      Alert.alert("Not allowed", "Only requesters can create blood requests.");
+      router.back();
+      return;
+    }
+  }, [isLoading, isAuthenticated, user, role, router]);
+
+  // Set default phone on mount / when profile changes
   useEffect(() => {
     setContactPhone(getDefaultPhone());
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileData?.phone]);
 
   const handleSubmit = async () => {
     const result = await createBloodRequest({
@@ -41,22 +64,18 @@ const Add = () => {
     });
 
     if (result.success) {
-      Alert.alert(
-        "Success",
-        "Your blood request has been created successfully!",
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              setSelectedBloodType("");
-              setDescription("");
-              setLocation("");
-              setContactPhone(getDefaultPhone());
-              router.back();
-            },
+      Alert.alert("Success", "Your blood request has been created successfully!", [
+        {
+          text: "OK",
+          onPress: () => {
+            setSelectedBloodType("");
+            setDescription("");
+            setLocation("");
+            setContactPhone(getDefaultPhone());
+            router.back();
           },
-        ]
-      );
+        },
+      ]);
     } else {
       Alert.alert("Error", result.error || "Failed to create request");
     }
@@ -182,36 +201,14 @@ const Add = () => {
 export default Add;
 
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 0,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  title: {
-    marginTop: 10,
-    marginBottom: 8,
-  },
-  subtitle: {
-    marginBottom: 30,
-    fontSize: 16,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  bloodTypeSection: {
-    marginBottom: 24,
-    marginLeft: -20, // Offset the container padding for full-width scroll
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
-  },
-  required: {
-    color: "#DC2626",
-  },
+  container: { paddingHorizontal: 0 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
+  title: { marginTop: 10, marginBottom: 8 },
+  subtitle: { marginBottom: 30, fontSize: 16 },
+  section: { marginBottom: 24 },
+  bloodTypeSection: { marginBottom: 24, marginLeft: -20 },
+  label: { fontSize: 16, fontWeight: "600", marginBottom: 10 },
+  required: { color: "#DC2626" },
   input: {
     borderWidth: 1,
     borderRadius: 10,
@@ -219,10 +216,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontSize: 16,
   },
-  textArea: {
-    minHeight: 100,
-    paddingTop: 14,
-  },
+  textArea: { minHeight: 100, paddingTop: 14 },
   submitButton: {
     borderRadius: 10,
     paddingVertical: 16,
@@ -230,17 +224,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 10,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 3,
   },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  submitButtonText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });

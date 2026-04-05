@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { Alert } from "react-native";
 import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/services/firebase/config";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { useState } from "react";
 
 export interface BloodRequestData {
   bloodType: string;
@@ -20,10 +19,10 @@ export const useBloodRequest = () => {
       return "Please select a blood type";
     }
     if (!data.description.trim()) {
-      return "Please enter a description";
+      return "Please enter a description for the request";
     }
     if (!data.location.trim()) {
-      return "Please enter a location";
+      return "Please enter a location(within city or area)";
     }
     if (!data.contactPhone.trim()) {
       return "Please enter a contact phone number";

@@ -65,7 +65,7 @@ export default function FeaturedUrgentCarousel() {
     <View style={styles.container}>
       <View style={styles.headerRow}>
         <Text style={[styles.header, gstyles.text]}>Urgent Needs</Text>
-        <TouchableOpacity onPress={() => router.push("/(tabs)/home")}>
+        <TouchableOpacity onPress={() => router.push("/(tabs)/requests")}>
           <Text style={[gstyles.textSecondary, styles.viewAll]}>View all</Text>
         </TouchableOpacity>
       </View>

@@ -21,7 +21,7 @@ export interface BloodRequest {
   userName: string;
   userEmail: string | null;
 
-  // ✅ include "deleted" because deleteRequest() writes it
+  //  include "deleted" because deleteRequest() writes it
   status: "active" | "completed" | "deleted";
 
   createdAt: Timestamp;
@@ -46,6 +46,9 @@ export const useBloodRequests = (enabled: boolean) => {
     setTimeout(() => setRefreshing(false), 500);
   }, []);
 
+  /**
+   * Get three days ago
+   */
   const getThreeDaysAgo = () => {
     const date = new Date();
     date.setDate(date.getDate() - 3);
@@ -53,6 +56,8 @@ export const useBloodRequests = (enabled: boolean) => {
   };
 
   useEffect(() => {
+    
+    
     if (!enabled) {
       setRecentRequests([]);
       setAllActiveRequests([]);
@@ -153,7 +158,7 @@ export const useBloodRequests = (enabled: boolean) => {
     }
   };
 
-  // ✅ hide deleted from UI lists
+  //  hide deleted from UI lists
   const displayRequestsRaw =
     recentRequests.length > 0 ? recentRequests : allActiveRequests;
 

@@ -70,6 +70,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const s = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
+    
+    
     if (profileData && !isEditing) {
       setEditedData(profileData);
     }
@@ -86,6 +88,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const isVerified = Boolean(profileData?.verified);
   const isDonor = (profileData?.role || "donor").toString() === "donor";
 
+  /**
+   * Handle save
+   */
   const handleSave = async () => {
     try {
       await onUpdateProfile(editedData);
@@ -97,17 +102,25 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     }
   };
 
+  /**
+   * Handle cancel
+   */
   const handleCancel = () => {
     setEditedData(profileData || {});
     setIsEditing(false);
   };
 
+  /**
+   * Pick and upload photo
+   */
   const pickAndUploadPhoto = async () => {
     try {
       setPhotoUploading(true);
 
       // Permission
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      
       if (!permission.granted) {
         Alert.alert("Permission required", "Please allow photo library access.");
         return;
@@ -133,6 +146,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         fileName.endsWith(".jpeg") ||
         fileName.endsWith(".png");
 
+      
+      
       if (!isAllowed) {
         Alert.alert("Invalid file", "Only JPG / JPEG / PNG files are allowed.");
         return;
@@ -163,6 +178,8 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     }
   };
 
+  
+  
   if (!profileData && !loading) {
     return (
       <SafeAreaView style={s.container}>
@@ -379,6 +396,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({
 
 export default ProfileView;
 
+  /**
+ * Create styles
+ */
 const createStyles = (theme: any) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },
   content: { flex: 1 },

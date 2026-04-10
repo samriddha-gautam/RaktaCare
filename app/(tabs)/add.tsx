@@ -16,6 +16,9 @@ import {
   View,
 } from "react-native";
 
+  /**
+ *  add
+ */
 const Add = () => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
@@ -31,17 +34,21 @@ const Add = () => {
   const [location, setLocation] = useState<string>("");
   const [contactPhone, setContactPhone] = useState<string>("");
 
-  // ✅ Guard: block donor/admin from opening this screen (UX)
+  //  Guard: block donor/admin from opening this screen (UX)
   useEffect(() => {
     // wait until auth finishes loading, otherwise it may flash
     if (isLoading) return;
 
+    
+    
     if (!isAuthenticated || !user) {
       Alert.alert("Please log in", "Log in to create a blood request.");
       router.back();
       return;
     }
 
+    
+    
     if (role === "donor" || role === "admin") {
       Alert.alert("Not allowed", "Only requesters can create blood requests.");
       router.back();
@@ -55,6 +62,9 @@ const Add = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileData?.phone]);
 
+  /**
+   * Handle submit
+   */
   const handleSubmit = async () => {
     const result = await createBloodRequest({
       bloodType: selectedBloodType,
@@ -63,6 +73,8 @@ const Add = () => {
       contactPhone,
     });
 
+    
+    
     if (result.success) {
       Alert.alert("Success", "Your blood request has been created successfully!", [
         {

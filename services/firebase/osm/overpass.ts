@@ -42,6 +42,8 @@ export async function fetchNearbyHospitals(params: {
     body: query,
   });
 
+  
+  
   if (!res.ok) {
     throw new Error(`Overpass error: HTTP ${res.status}`);
   }

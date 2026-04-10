@@ -49,15 +49,22 @@ const DonationReminders: React.FC = () => {
     loadSettings();
   }, []);
 
+  /**
+   * Load settings
+   */
   const loadSettings = async () => {
     try {
       const saved = await AsyncStorage.getItem("donationReminderSettings");
+      
+      
       if (saved) {
         const settings = JSON.parse(saved);
         setSelectedType(settings.selectedType ?? 0);
         setSelectedTime(settings.selectedTime ?? "9:00 AM");
         setPushEnabled(settings.pushEnabled ?? true);
         setEmailEnabled(settings.emailEnabled ?? false);
+        
+        
         if (settings.lastDonationDate) {
           setLastDonationDate(new Date(settings.lastDonationDate));
         }
@@ -67,6 +74,9 @@ const DonationReminders: React.FC = () => {
     }
   };
 
+  /**
+   * Save settings
+   */
   const saveSettings = async () => {
     try {
       const settings = {
@@ -114,6 +124,9 @@ const DonationReminders: React.FC = () => {
     return diff > 0 ? diff : 0;
   };
 
+  /**
+   * Set last donation today
+   */
   const setLastDonationToday = () => {
     setLastDonationDate(new Date());
   };

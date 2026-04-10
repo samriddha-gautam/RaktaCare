@@ -36,6 +36,9 @@ export default function AdminVerifications() {
 
   const isAdmin = profileData?.role === "admin";
 
+  /**
+   * Load
+   */
   const load = async () => {
     setLoading(true);
     try {
@@ -53,6 +56,9 @@ export default function AdminVerifications() {
     load();
   }, []);
 
+  /**
+   * Approve
+   */
   const approve = async (uid: string) => {
     if (!user?.uid) return;
     try {
@@ -64,9 +70,14 @@ export default function AdminVerifications() {
     }
   };
 
+  /**
+   * Reject
+   */
   const reject = async (uid: string) => {
     if (!user?.uid) return;
     const reason = (rejectReasonByUid[uid] || "").trim();
+    
+    
     if (!reason) {
       Alert.alert("Reason required", "Please enter a rejection reason.");
       return;
@@ -80,6 +91,8 @@ export default function AdminVerifications() {
     }
   };
 
+  
+  
   if (!isAdmin) {
     return (
       <SafeAreaView style={g.container}>

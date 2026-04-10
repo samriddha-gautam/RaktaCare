@@ -22,6 +22,9 @@ import {
 const NOTIF_PREFS_KEY = "notificationPreferences";
 const LOCATION_SETTINGS_KEY = "locationSettings";
 
+  /**
+ * Read stored flag
+ */
 async function readStoredFlag(key: string, field: string, fallback: boolean) {
   try {
     const raw = await AsyncStorage.getItem(key);
@@ -33,6 +36,90 @@ async function readStoredFlag(key: string, field: string, fallback: boolean) {
     return fallback;
   }
 }
+
+const SettingSection = ({
+  title,
+  children,
+  theme,
+}: {
+  title: string;
+  children: React.ReactNode;
+  theme: any;
+}) => (
+  <View style={styles.section}>
+    <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
+      {title}
+    </Text>
+    <View
+      style={[
+        styles.sectionContent,
+        { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
+      ]}
+    >
+      {children}
+    </View>
+  </View>
+);
+
+const SettingItem = ({
+  label,
+  value,
+  onValueChange,
+  showSwitch = false,
+  isLast = false,
+  onPress,
+  theme,
+}: {
+  label: string;
+  value?: boolean;
+  onValueChange?: (value: boolean) => void;
+  showSwitch?: boolean;
+  isLast?: boolean;
+  onPress?: () => void;
+  theme: any;
+}) => {
+  const content = (
+    <View
+      style={[
+        styles.settingItem,
+        {
+          borderBottomColor: theme.colors.border,
+          borderBottomWidth: isLast ? 0 : 1,
+        },
+      ]}
+    >
+      <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
+        {label}
+      </Text>
+      {showSwitch ? (
+        <Switch
+          value={value}
+          onValueChange={onValueChange}
+          trackColor={{
+            false: theme.colors.border,
+            true: theme.colors.primary,
+          }}
+          thumbColor={value ? "#fff" : "#f4f3f4"}
+        />
+      ) : (
+        <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
+          ›
+        </Text>
+      )}
+    </View>
+  );
+
+  
+  
+  if (onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    );
+  }
+  return content;
+};
 
 const Settings: React.FC = () => {
   const { theme } = useTheme();
@@ -74,6 +161,8 @@ const Settings: React.FC = () => {
     try {
       if (!user?.uid) return;
       const latest = await getUserProfile(user.uid);
+      
+      
       if (latest) {
         await setProfileData(latest);
       }
@@ -89,84 +178,9 @@ const Settings: React.FC = () => {
     }, [loadFlags, refreshProfile])
   );
 
-  const SettingSection = ({
-    title,
-    children,
-  }: {
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textSecondary }]}>
-        {title}
-      </Text>
-      <View
-        style={[
-          styles.sectionContent,
-          { backgroundColor: theme.colors.surface, borderColor: theme.colors.border },
-        ]}
-      >
-        {children}
-      </View>
-    </View>
-  );
-
-  const SettingItem = ({
-    label,
-    value,
-    onValueChange,
-    showSwitch = false,
-    isLast = false,
-    onPress,
-  }: {
-    label: string;
-    value?: boolean;
-    onValueChange?: (value: boolean) => void;
-    showSwitch?: boolean;
-    isLast?: boolean;
-    onPress?: () => void;
-  }) => {
-    const content = (
-      <View
-        style={[
-          styles.settingItem,
-          {
-            borderBottomColor: theme.colors.border,
-            borderBottomWidth: isLast ? 0 : 1,
-          },
-        ]}
-      >
-        <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
-          {label}
-        </Text>
-        {showSwitch ? (
-          <Switch
-            value={value}
-            onValueChange={onValueChange}
-            trackColor={{
-              false: theme.colors.border,
-              true: theme.colors.primary,
-            }}
-            thumbColor={value ? "#fff" : "#f4f3f4"}
-          />
-        ) : (
-          <Text style={[styles.settingValue, { color: theme.colors.textSecondary }]}>
-            ›
-          </Text>
-        )}
-      </View>
-    );
-
-    if (onPress) {
-      return (
-        <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-          {content}
-        </TouchableOpacity>
-      );
-    }
-    return content;
-  };
-
+  /**
+   * Handle toggle notifications
+   */
   const handleToggleNotifications = async (value: boolean) => {
     setNotificationsEnabled(value);
     if (!value) setDonationReminders(false);
@@ -193,7 +207,12 @@ const Settings: React.FC = () => {
     }
   };
 
+  /**
+   * Handle toggle donation reminders
+   */
   const handleToggleDonationReminders = async (value: boolean) => {
+    
+    
     if (!notificationsEnabled && value) {
       Alert.alert("Enable Notifications", "Turn on push notifications first.");
       return;
@@ -215,6 +234,9 @@ const Settings: React.FC = () => {
     }
   };
 
+  /**
+   * Handle toggle location services
+   */
   const handleToggleLocationServices = async (value: boolean) => {
     setLocationServices(value);
 
@@ -228,6 +250,9 @@ const Settings: React.FC = () => {
     }
   };
 
+  /**
+   * Handle logout
+   */
   const handleLogout = () => {
     Alert.alert("Log out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
@@ -236,6 +261,8 @@ const Settings: React.FC = () => {
         style: "destructive",
         onPress: async () => {
           const res = await logout();
+          
+          
           if (res.success) {
             router.replace("/profile");
           } else {
@@ -251,7 +278,7 @@ const Settings: React.FC = () => {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <Text style={[styles.header, { color: theme.colors.text }]}>Settings</Text>
 
-        <SettingSection title="Appearance">
+        <SettingSection title="Appearance" theme={theme}>
           <View style={[styles.settingItem, { borderBottomWidth: 0 }]}>
             <Text style={[styles.settingLabel, { color: theme.colors.text }]}>
               Dark Mode
@@ -260,49 +287,55 @@ const Settings: React.FC = () => {
           </View>
         </SettingSection>
 
-        <SettingSection title="Notifications">
+        <SettingSection title="Notifications" theme={theme}>
           <SettingItem
             label="Push Notifications"
             value={notificationsEnabled}
             onValueChange={handleToggleNotifications}
             showSwitch={true}
+            theme={theme}
           />
           <SettingItem
             label="Donation Reminders"
             value={donationReminders}
             onValueChange={handleToggleDonationReminders}
             showSwitch={true}
+            theme={theme}
           />
           <SettingItem
             label="Notification Preferences"
             onPress={() => router.push("/notification-preferences")}
             isLast={true}
+            theme={theme}
           />
         </SettingSection>
 
-        <SettingSection title="Privacy & Location">
+        <SettingSection title="Privacy & Location" theme={theme}>
           <SettingItem
             label="Location Services"
             value={locationServices}
             onValueChange={handleToggleLocationServices}
             showSwitch={true}
+            theme={theme}
           />
           <SettingItem
             label="Privacy Policy"
             onPress={() => router.push("/privacy-policy")}
             isLast={true}
+            theme={theme}
           />
         </SettingSection>
 
-        <SettingSection title="Donation Profile">
+        <SettingSection title="Donation Profile" theme={theme}>
           <SettingItem
             label="Eligibility Criteria"
             onPress={() => router.push("/eligibility-settings")}
             isLast={true}
+            theme={theme}
           />
         </SettingSection>
 
-        <SettingSection title="Verification">
+        <SettingSection title="Verification" theme={theme}>
           <SettingItem
             label={
               profileData?.verified
@@ -311,25 +344,29 @@ const Settings: React.FC = () => {
             }
             onPress={() => router.push("/verify-donor")}
             isLast={!isAdmin}
+            theme={theme}
           />
           {isAdmin ? (
             <SettingItem
               label="Admin: Verification Requests"
               onPress={() => router.push("/admin/verifications")}
               isLast={true}
+              theme={theme}
             />
           ) : null}
         </SettingSection>
 
-        <SettingSection title="Account">
+        <SettingSection title="Account" theme={theme}>
           <SettingItem
             label="Edit Profile"
             onPress={() => router.push("/edit-profile")}
+            theme={theme}
           />
           <SettingItem
             label="Change Password"
             onPress={() => router.push("/change-password")}
             isLast={true}
+            theme={theme}
           />
         </SettingSection>
 

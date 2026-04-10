@@ -67,6 +67,8 @@ export default function MyRequests() {
   }, []);
 
   useEffect(() => {
+    
+    
     if (!enabled || !user?.uid) {
       setItems([]);
       setLoading(false);
@@ -119,6 +121,9 @@ export default function MyRequests() {
     [visibleItems]
   );
 
+  /**
+   * Format date
+   */
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "Just now";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -132,6 +137,9 @@ export default function MyRequests() {
     return `${diffInDays} days ago`;
   };
 
+  /**
+   * Toggle status
+   */
   const toggleStatus = async (id: string, current: "active" | "completed") => {
     try {
       const ref = doc(db, "bloodRequests", id);
@@ -143,6 +151,9 @@ export default function MyRequests() {
     }
   };
 
+  /**
+   * Soft delete
+   */
   const softDelete = async (id: string) => {
     try {
       const ref = doc(db, "bloodRequests", id);
@@ -157,6 +168,9 @@ export default function MyRequests() {
     }
   };
 
+  /**
+   * Confirm toggle
+   */
   const confirmToggle = (req: MyRequest) => {
     if (req.status === "deleted") return;
 
@@ -177,6 +191,9 @@ export default function MyRequests() {
     );
   };
 
+  /**
+   * Confirm delete
+   */
   const confirmDelete = (req: MyRequest) => {
     Alert.alert(
       "Delete Request",
@@ -195,6 +212,8 @@ export default function MyRequests() {
     );
   };
 
+  
+  
   if (!enabled) {
     return (
       <SafeAreaView style={g.container}>

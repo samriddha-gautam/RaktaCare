@@ -26,6 +26,9 @@ import {
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+  /**
+ * To y y y y m m d d
+ */
 function toYYYYMMDD(d: Date) {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -62,7 +65,12 @@ export default function VerifyDonor() {
     return "Not Submitted";
   }, [existingReq?.status, profileData?.verified]);
 
+  /**
+   * Load
+   */
   const load = async () => {
+    
+    
     if (!user?.uid) {
       setLoading(false);
       return;
@@ -73,12 +81,15 @@ export default function VerifyDonor() {
       setExistingReq(req);
 
       // Pre-fill form if request exists
+      
       if (req) {
         setPhone(req.phone || "");
         if (req.bloodGroup && BLOOD_GROUPS.includes(req.bloodGroup)) {
           setBloodGroup(req.bloodGroup);
         }
         setAge(req.age ? String(req.age) : "");
+        
+        
         if (req.lastDonationDate) {
           const parsed = new Date(req.lastDonationDate);
           if (!Number.isNaN(parsed.getTime())) setLastDonationDate(parsed);
@@ -99,7 +110,12 @@ export default function VerifyDonor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
+  /**
+   * Handle submit
+   */
   const handleSubmit = async () => {
+    
+    
     if (!user?.uid) {
       Alert.alert("Login required", "Please login first.");
       router.push("/profile");
@@ -139,6 +155,7 @@ export default function VerifyDonor() {
   };
 
   // Not logged in UI
+  
   if (!user?.uid) {
     return (
       <SafeAreaView style={g.container}>

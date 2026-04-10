@@ -14,6 +14,9 @@ interface Props {
   reset: () => void;
 }
 
+  /**
+ * Chip
+ */
 const chip = (selected: boolean, theme: any) =>
   selected ? { backgroundColor: theme.colors.primary, color: "#fff" } : { backgroundColor: "transparent", borderColor: theme.colors.border };
 

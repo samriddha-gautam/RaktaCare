@@ -15,6 +15,8 @@ export const useBloodRequest = () => {
   const { user, profileData } = useAuth();
 
   const validateRequest = (data: BloodRequestData): string | null => {
+    
+    
     if (!data.bloodType) {
       return "Please select a blood type";
     }
@@ -27,6 +29,8 @@ export const useBloodRequest = () => {
     if (!data.contactPhone.trim()) {
       return "Please enter a contact phone number";
     }
+    
+    
     if (!user) {
       return "You must be logged in to create a request";
     }
@@ -38,6 +42,8 @@ export const useBloodRequest = () => {
   ): Promise<{ success: boolean; error?: string }> => {
     // Validate
     const validationError = validateRequest(data);
+    
+    
     if (validationError) {
       return { success: false, error: validationError };
     }

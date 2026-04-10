@@ -29,15 +29,22 @@ export default function ChangePasswordScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Handle change password
+   */
   const handleChangePassword = async () => {
     const user = auth.currentUser;
 
+    
+    
     if (!user) {
       Alert.alert("Not logged in", "Please login first.");
       return;
     }
 
     const email = user.email;
+    
+    
     if (!email) {
       Alert.alert(
         "Not supported",
@@ -46,21 +53,29 @@ export default function ChangePasswordScreen() {
       return;
     }
 
+    
+    
     if (!currentPassword) {
       Alert.alert("Missing", "Please enter your current password.");
       return;
     }
 
+    
+    
     if (!newPassword || newPassword.length < 6) {
       Alert.alert("Invalid", "New password must be at least 6 characters.");
       return;
     }
 
+    
+    
     if (newPassword !== confirmPassword) {
       Alert.alert("Mismatch", "New password and confirm password do not match.");
       return;
     }
 
+    
+    
     if (newPassword === currentPassword) {
       Alert.alert(
         "Invalid",
@@ -89,16 +104,22 @@ export default function ChangePasswordScreen() {
 
       const code = e?.code as string | undefined;
 
+      
+      
       if (code === "auth/wrong-password") {
         Alert.alert("Error", "Current password is incorrect.");
         return;
       }
 
+      
+      
       if (code === "auth/too-many-requests") {
         Alert.alert("Try later", "Too many attempts. Please try again later.");
         return;
       }
 
+      
+      
       if (code === "auth/requires-recent-login") {
         Alert.alert(
           "Login required",

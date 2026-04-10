@@ -105,11 +105,15 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
             currentScrollY > minScrollY
           ) {
             hideHeader();
+            
+            
             if (shouldUpdateLastScrollY) {
               lastScrollY.current = currentScrollY;
             }
           } else if (scrollDiff < -showThreshold && !isHeaderVisible) {
             showHeader();
+            
+            
             if (shouldUpdateLastScrollY) {
               lastScrollY.current = currentScrollY;
             }
@@ -117,6 +121,8 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
             lastScrollY.current = currentScrollY;
           }
 
+          
+          
           if (currentScrollY <= 0) {
             showHeader();
             lastScrollY.current = 0;
@@ -125,7 +131,12 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
       }
     );
 
+  /**
+     * Navigate to profile
+     */
     const navigateToProfile = () => {
+      
+      
       if (onProfilePress) {
         onProfilePress();
       } else {

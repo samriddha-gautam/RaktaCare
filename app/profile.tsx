@@ -15,6 +15,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+  /**
+ *  profile
+ */
 const Profile = () => {
   const router = useRouter();
   const { theme } = useTheme();
@@ -30,44 +33,61 @@ const Profile = () => {
 
   const { signUp, login, logout, loading: authLoading } = useAuthActions();
 
-  // ✅ only redirect when user just logged in/sign up from this screen
+  //  only redirect when user just logged in/sign up from this screen
   const shouldRedirectAfterAuth = useRef(false);
 
+  /**
+   * Handle login
+   */
   const handleLogin = async (email: string, password: string) => {
     shouldRedirectAfterAuth.current = true;
 
     const result = await login(email, password);
+    
+    
     if (!result.success && result.error) {
       shouldRedirectAfterAuth.current = false;
       console.error("Login failed:", result.error);
       return;
     }
 
-    // ✅ redirect to landing after successful login
+    //  redirect to landing after successful login
     router.replace("/(tabs)");
   };
 
+  /**
+   * Handle sign up
+   */
   const handleSignUp = async (email: string, password: string, name: string) => {
     shouldRedirectAfterAuth.current = true;
 
     const result = await signUp(email, password, name);
+    
+    
     if (!result.success && result.error) {
       shouldRedirectAfterAuth.current = false;
       console.error("Signup failed:", result.error);
       return;
     }
 
-    // ✅ redirect to landing after successful signup
+    //  redirect to landing after successful signup
     router.replace("/(tabs)");
   };
 
+  /**
+   * Handle logout
+   */
   const handleLogout = async () => {
     const result = await logout();
+    
+    
     if (!result.success && result.error) {
       console.error("Logout failed:", result.error);
     }
   };
 
+  
+  
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>

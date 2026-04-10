@@ -22,6 +22,10 @@ export default function RequestDetailsScreen() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+
+  /**
+     * Load
+     */
     const load = async () => {
       try {
         setLoading(true);
@@ -44,6 +48,8 @@ export default function RequestDetailsScreen() {
     if (id) load();
   }, [id]);
 
+  
+  
   if (loading) {
     return (
       <View style={styles.center}>
@@ -52,6 +58,8 @@ export default function RequestDetailsScreen() {
     );
   }
 
+  
+  
   if (error || !request) {
     return (
       <View style={styles.center}>

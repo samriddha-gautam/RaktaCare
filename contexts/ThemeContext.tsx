@@ -20,7 +20,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [isDark, setIsDark] = useState(systemColorScheme === 'light');
   
   const theme = isDark ? darkTheme : lightTheme;
-  
+  /**
+   * Toggle theme
+   */
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
@@ -34,6 +36,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
 export const useTheme = (): ThemeContextType => {
   const context = useContext(ThemeContext);
+  
+  
   if (!context) {
     throw new Error('useTheme must be used within a ThemeProvider');
   }

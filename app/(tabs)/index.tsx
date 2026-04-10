@@ -27,7 +27,7 @@ const HomePage: React.FC = () => {
   const {
     displayRequests,
     activeRequests,
-    error, // ✅ your hook uses `error`
+    error, //  your hook uses `error`
     refreshing,
     refresh,
     toggleRequestStatus,
@@ -39,10 +39,16 @@ const HomePage: React.FC = () => {
     headerRef.current?.handleScroll(event);
   }, []);
 
+  /**
+   * Handle blood type select
+   */
   const handleBloodTypeSelect = (bloodType: string) => {
     setSelectedBloodType((prev) => (prev === bloodType ? "" : bloodType));
   };
 
+  /**
+   * Reset filters
+   */
   const resetFilters = () => {
     setSearchText("");
     setSelectedBloodType("");
@@ -54,6 +60,7 @@ const HomePage: React.FC = () => {
     let list = [...displayRequests];
 
     // date filter: dateRange -> cutoff
+    
     if (dateRange !== "all") {
       const now = new Date();
       let cutoff = new Date();
@@ -67,11 +74,13 @@ const HomePage: React.FC = () => {
     }
 
     // status filter
+    
     if (statusFilter !== "all") {
       list = list.filter((r) => r.status === statusFilter);
     }
 
     // blood type filter from horizontal chips
+    
     if (selectedBloodType) {
       list = list.filter((r) => r.bloodType === selectedBloodType);
     }

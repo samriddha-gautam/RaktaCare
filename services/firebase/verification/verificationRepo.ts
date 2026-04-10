@@ -6,17 +6,14 @@ export type VerificationStatus = "pending" | "approved" | "rejected";
 export type VerificationRequest = {
   uid: string;
   status: VerificationStatus;
-
   phone: string;
   bloodGroup: string;
   age: number;
   lastDonationDate: string; // YYYY-MM-DD
   city: string;
   notes: string;
-
   createdAt?: any;
   updatedAt?: any;
-
   reviewedBy?: string | null;
   reviewedAt?: any;
   reviewReason?: string | null;
@@ -50,7 +47,6 @@ export async function submitVerificationRequest(
     ...data,
     updatedAt: serverTimestamp(),
 
-    // reset admin fields on resubmit
     reviewedBy: null,
     reviewedAt: null,
     reviewReason: null,

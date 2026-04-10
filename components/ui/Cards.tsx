@@ -22,7 +22,7 @@ interface BloodRequest {
   userName: string;
   userEmail: string | null;
 
-  // ✅ include deleted to match Firestore data/hook
+  //  include deleted to match Firestore data/hook
   status: "active" | "completed" | "deleted";
 
   createdAt: any;
@@ -54,7 +54,7 @@ const Cards = ({
   const gstyles = createGlobalStyles(theme);
   const { user } = useAuth();
 
-  // ✅ filter out deleted everywhere
+  //  filter out deleted everywhere
   const visibleDisplayRequests = useMemo(
     () => displayRequests.filter((r) => r.status !== "deleted"),
     [displayRequests]
@@ -92,6 +92,8 @@ const Cards = ({
           text: "Confirm",
           onPress: async () => {
             const result = await toggleRequestStatus(requestId, currentStatus);
+            
+            
             if (result.success) {
               Alert.alert(
                 "Success",
@@ -108,6 +110,9 @@ const Cards = ({
     );
   };
 
+  /**
+   * Format date
+   */
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "Just now";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -124,6 +129,9 @@ const Cards = ({
     return `${diffInDays} days ago`;
   };
 
+  /**
+   * Open details
+   */
   const openDetails = (request: BloodRequest) => {
     router.push({
       pathname: "/request-details/[id]",
@@ -131,6 +139,8 @@ const Cards = ({
     });
   };
 
+  
+  
   if (!enabled) {
     return (
       <View style={styles.section}>
@@ -144,6 +154,8 @@ const Cards = ({
     );
   }
 
+  
+  
   if (isLoadingRequests) {
     return (
       <View style={styles.section}>
@@ -155,6 +167,8 @@ const Cards = ({
     );
   }
 
+  
+  
   if (errorRequests) {
     return (
       <View style={styles.section}>
@@ -166,6 +180,8 @@ const Cards = ({
     );
   }
 
+  
+  
   if (filteredRequests.length === 0) {
     return (
       <View style={styles.section}>

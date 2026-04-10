@@ -10,12 +10,18 @@ import {
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/jpg", "image/png"]);
 
+  /**
+ * Get avatar path
+ */
 function getAvatarPath(uid: string) {
   return `profilePhotos/${uid}/avatar.jpg`;
 }
 
-// ✅ Robust version using fetch() which is recommended in modern Expo/React Native
+//  Robust version using fetch() which is recommended in modern Expo/React Native
 // for handling local file:// URIs.
+/**
+ * Uri to blob
+ */
 async function uriToBlob(uri: string): Promise<Blob> {
   try {
     const response = await fetch(uri);

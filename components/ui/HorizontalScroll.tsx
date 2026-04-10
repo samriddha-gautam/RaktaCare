@@ -23,7 +23,12 @@ const HorizontalScroll = ({
 }: HorizontalScrollProps) => {
   const { theme } = useTheme();
 
+  /**
+   * Handle press
+   */
   const handlePress = (name: string) => {
+    
+    
     if (onSelectBloodType) {
       onSelectBloodType(name);
     }

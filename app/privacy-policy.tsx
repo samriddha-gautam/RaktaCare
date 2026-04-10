@@ -157,6 +157,9 @@ const PrivacyPolicy: React.FC = () => {
   const globalStyles = createGlobalStyles(theme);
   const router = useRouter();
 
+  /**
+   * Render bullet item
+   */
   const renderBulletItem = (item: string, index: number) => (
     <View key={index} style={styles.bulletRow}>
       <Text style={[styles.bullet, { color: theme.colors.primary }]}>•</Text>

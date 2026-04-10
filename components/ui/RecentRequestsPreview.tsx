@@ -7,6 +7,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 
 // minimal small card for one request
+/**
+ *  mini request
+ */
 const MiniRequest = ({ r }: { r: BloodRequest }) => {
   const { theme } = useTheme();
   return (

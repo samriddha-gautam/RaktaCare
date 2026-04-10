@@ -20,7 +20,7 @@ interface ProfileData {
   phone?: string;
   photoURL?: string;
 
-  // ✅ important for rules/UI
+  //  important for rules/UI
   role?: UserRole;
 
   // allow extra fields
@@ -57,8 +57,13 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  /**
+   * Persists the current firebase user authentication state to local storage
+   */
   const persistUserData = async (userData: User | null) => {
     try {
+      
+      
       if (userData) {
         const userToStore = {
           uid: userData.uid,
@@ -78,8 +83,13 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
+  /**
+   * Updates and persists the user profile information
+   */
   const setProfileData = async (data: ProfileData | null) => {
     try {
+      
+      
       if (data) {
         await AsyncStorage.setItem(STORAGE_KEYS.PROFILE_DATA, JSON.stringify(data));
       } else {
@@ -91,15 +101,22 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
-  // ✅ Optimistically load cached AUTH & PROFILE data (to keep UI looking logged in)
+  //  Optimistically load cached AUTH & PROFILE data (to keep UI looking logged in)
+  /**
+   * Loads authentication and profile data from local storage on app start
+   */
   const loadPersistedAuthAndProfile = async () => {
     try {
       const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
+      
+      
       if (storedProfile) {
         setProfileDataState(JSON.parse(storedProfile));
       }
 
       const cachedAuth = await AsyncStorage.getItem(STORAGE_KEYS.IS_AUTHENTICATED);
+      
+      
       if (cachedAuth === "true") {
         setIsAuthenticated(true);
         console.log("Found cached session state");
@@ -109,6 +126,9 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
+  /**
+   * Clears all authentication and profile data from local storage (logout)
+   */
   const clearAllData = async () => {
     try {
       await AsyncStorage.multiRemove([
@@ -125,7 +145,12 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     }
   };
 
+  /**
+   * Refreshes the current user authentication state
+   */
   const refreshUserData = async () => {
+    
+    
     if (auth.currentUser) {
       await persistUserData(auth.currentUser);
       setUser(auth.currentUser);
@@ -144,7 +169,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
         name: firebaseUser.displayName || "",
         displayName: firebaseUser.displayName || "",
         photoURL: firebaseUser.photoURL || "",
-        role: "requester", // ✅ default role
+        role: "requester", //  default role
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -157,6 +182,7 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
     const data = snap.data() as any;
 
     // Backfill role if missing (important for existing users)
+    
     if (!data.role) {
       await setDoc(ref, { role: "requester", updatedAt: serverTimestamp() }, { merge: true });
       data.role = "requester";
@@ -184,11 +210,13 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
 
       setUser(firebaseUser);
 
+      
+      
       if (firebaseUser) {
         setIsAuthenticated(true);
         await persistUserData(firebaseUser);
 
-        // ✅ Always try to load profile from Firestore (source of truth for role)
+        //  Always try to load profile from Firestore (source of truth for role)
         try {
           const firestoreProfile = await ensureAndLoadFirestoreProfile(firebaseUser);
           await setProfileData(firestoreProfile);
@@ -197,6 +225,8 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
 
           // fallback to cached profile if Firestore fails
           const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.PROFILE_DATA);
+          
+          
           if (storedProfile) {
             setProfileDataState(JSON.parse(storedProfile));
           } else {
@@ -240,6 +270,8 @@ export const AuthProvider = ({ children }: AuthContextProps) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
+  
+  
   if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }

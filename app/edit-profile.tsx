@@ -123,10 +123,15 @@ const EditProfile: React.FC = () => {
     profileData,
   ]);
 
+  /**
+   * Pick and upload photo
+   */
   const pickAndUploadPhoto = async () => {
     try {
       setPhotoUploading(true);
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      
       if (!permission.granted) {
         Alert.alert("Permission required", "Please allow photo library access.");
         return;
@@ -165,6 +170,9 @@ const EditProfile: React.FC = () => {
     }
   };
 
+  /**
+   * Handle save
+   */
   const handleSave = async () => {
     if (!displayName.trim()) {
       Alert.alert("Error", "Name cannot be empty.");
@@ -185,6 +193,8 @@ const EditProfile: React.FC = () => {
         phone: phone.trim(),
       });
 
+      
+      
       if (result.success) {
         const updatedProfile = {
           ...profileData,
@@ -215,7 +225,12 @@ const EditProfile: React.FC = () => {
     }
   };
 
+  /**
+   * Handle back
+   */
   const handleBack = () => {
+    
+    
     if (hasChanges) {
       Alert.alert(
         "Discard Changes?",

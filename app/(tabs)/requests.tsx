@@ -22,6 +22,9 @@ type ActionButtonProps = {
   variant?: "primary" | "secondary";
 };
 
+  /**
+ *  action button
+ */
 const ActionButton = ({ title, onPress, variant = "secondary" }: ActionButtonProps) => {
   const { theme } = useTheme();
 
@@ -48,6 +51,9 @@ const ActionButton = ({ title, onPress, variant = "secondary" }: ActionButtonPro
   );
 };
 
+  /**
+ *  requests tab
+ */
 const RequestsTab = () => {
   const { theme } = useTheme();
   const styles = createGlobalStyles(theme);
@@ -61,7 +67,12 @@ const RequestsTab = () => {
     headerRef.current?.handleScroll(event);
   }, []);
 
+  /**
+   * Require login
+   */
   const requireLogin = (next: () => void) => {
+    
+    
     if (!isAuthenticated) {
       Alert.alert("Please log in", "Log in to continue.");
       return;

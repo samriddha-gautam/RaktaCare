@@ -52,6 +52,9 @@ const AuthForm: React.FC<AuthFormProps> = ({
     textSecondary: { color: theme.colors.textSecondary },
   }), [accentColor, backgroundColor, theme]);
 
+  /**
+   * Validate inputs
+   */
   const validateInputs = () => {
     if (!email.trim()) {
       Alert.alert("Validation Error", "Please enter your email");
@@ -65,6 +68,8 @@ const AuthForm: React.FC<AuthFormProps> = ({
       Alert.alert("Validation Error", "Please enter your name");
       return false;
     }
+    
+    
     if (password.length < 6) {
       Alert.alert("Validation Error", "Password must be at least 6 characters");
       return false;
@@ -72,6 +77,9 @@ const AuthForm: React.FC<AuthFormProps> = ({
     return true;
   };
 
+  /**
+   * Handle login
+   */
   const handleLogin = async () => {
     if (!validateInputs()) return;
     try {
@@ -81,6 +89,9 @@ const AuthForm: React.FC<AuthFormProps> = ({
     }
   };
 
+  /**
+   * Handle signup
+   */
   const handleSignup = async () => {
     if (!validateInputs()) return;
     try {
@@ -90,12 +101,18 @@ const AuthForm: React.FC<AuthFormProps> = ({
     }
   };
 
+  /**
+   * Clear form
+   */
   const clearForm = () => {
     setEmail("");
     setPassword("");
     setName("");
   };
 
+  /**
+   * Toggle mode
+   */
   const toggleMode = () => {
     setIsLoginMode(!isLoginMode);
     clearForm();

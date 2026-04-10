@@ -35,6 +35,9 @@ export default function Nearby() {
     };
   }, [myLoc]);
 
+  /**
+   * Open in google maps
+   */
   const openInGoogleMaps = (lat: number, lng: number, label?: string) => {
     const q = label ? `${lat},${lng}(${encodeURIComponent(label)})` : `${lat},${lng}`;
     const url = `https://www.google.com/maps/search/?api=1&query=${q}`;
@@ -43,17 +46,24 @@ export default function Nearby() {
     );
   };
 
+  /**
+   * Load
+   */
   const load = async () => {
     try {
       setLoading(true);
 
       const servicesEnabled = await Location.hasServicesEnabledAsync();
+      
+      
       if (!servicesEnabled) {
         Alert.alert("GPS is OFF", "Please turn on device location services.");
         return;
       }
 
       const perm = await Location.requestForegroundPermissionsAsync();
+      
+      
       if (perm.status !== "granted") {
         Alert.alert(
           "Permission required",

@@ -50,6 +50,9 @@ const DEFAULT_SETTINGS: LocationSettings = {
   lastKnownLocation: null,
 };
 
+  /**
+ * Clamp
+ */
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
@@ -64,6 +67,9 @@ const LocationServices: React.FC = () => {
     String(DEFAULT_SETTINGS.emergencyRadiusKm)
   );
 
+  /**
+   * Persist remote user location settings
+   */
   const persistRemoteUserLocationSettings = async (next: LocationSettings) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -88,7 +94,10 @@ const LocationServices: React.FC = () => {
     }
   };
 
-  // ✅ Always update from latest state (prevents stale state bugs)
+  //  Always update from latest state (prevents stale state bugs)
+  /**
+   * Update settings
+   */
   const updateSettings = async (patch: Partial<LocationSettings>) => {
     let nextValue: LocationSettings = DEFAULT_SETTINGS;
 
@@ -103,6 +112,8 @@ const LocationServices: React.FC = () => {
       console.log("Failed to save location settings", e);
     }
 
+    
+    
     if (isAuthenticated) {
       await persistRemoteUserLocationSettings(nextValue);
     }
@@ -110,6 +121,9 @@ const LocationServices: React.FC = () => {
     return nextValue;
   };
 
+  /**
+   * Sync device location status
+   */
   const syncDeviceLocationStatus = async () => {
     try {
       const servicesEnabled = await Location.hasServicesEnabledAsync();
@@ -122,7 +136,7 @@ const LocationServices: React.FC = () => {
           ? "denied"
           : "undetermined";
 
-      // ✅ Update only status fields; do NOT flip user setting or erase lastKnownLocation
+      //  Update only status fields; do NOT flip user setting or erase lastKnownLocation
       await updateSettings({
         servicesEnabled,
         permissionStatus,
@@ -138,6 +152,8 @@ const LocationServices: React.FC = () => {
 
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        
+        
         if (raw) {
           const parsed = JSON.parse(raw);
           merged = {
@@ -164,9 +180,14 @@ const LocationServices: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Request permission and fetch location
+   */
   const requestPermissionAndFetchLocation = async (mode: AccuracyMode) => {
     const servicesEnabled = await Location.hasServicesEnabledAsync();
 
+    
+    
     if (!servicesEnabled) {
       return {
         granted: false as const,
@@ -178,6 +199,8 @@ const LocationServices: React.FC = () => {
 
     const { status } = await Location.requestForegroundPermissionsAsync();
 
+    
+    
     if (status !== "granted") {
       return {
         granted: false as const,
@@ -205,12 +228,19 @@ const LocationServices: React.FC = () => {
     };
   };
 
+  /**
+   * Handle toggle location
+   */
   const handleToggleLocation = async (value: boolean) => {
+    
+    
     if (!value) {
       await updateSettings({ locationEnabled: false });
       return;
     }
 
+    
+    
     if (!isAuthenticated) {
       Alert.alert(
         "Login required",
@@ -229,6 +259,8 @@ const LocationServices: React.FC = () => {
     try {
       const result = await requestPermissionAndFetchLocation(settings.accuracyMode);
 
+      
+      
       if (!result.granted) {
         await updateSettings({
           locationEnabled: false,
@@ -271,6 +303,8 @@ const LocationServices: React.FC = () => {
   const statusConfig = useMemo(() => {
     const services = settings.servicesEnabled;
 
+    
+    
     if (!isAuthenticated) {
       return {
         color: theme.colors.danger,
@@ -281,6 +315,8 @@ const LocationServices: React.FC = () => {
       };
     }
 
+    
+    
     if (services === false) {
       return {
         color: theme.colors.danger,
@@ -291,6 +327,8 @@ const LocationServices: React.FC = () => {
       };
     }
 
+    
+    
     if (settings.permissionStatus === "denied") {
       return {
         color: theme.colors.danger,
@@ -301,6 +339,8 @@ const LocationServices: React.FC = () => {
       };
     }
 
+    
+    
     if (!settings.locationEnabled) {
       return {
         color: theme.colors.warning,
@@ -326,6 +366,9 @@ const LocationServices: React.FC = () => {
     theme,
   ]);
 
+  /**
+   * Apply radius
+   */
   const applyRadius = async () => {
     const parsed = Number(radiusInput);
     if (!Number.isFinite(parsed)) {
@@ -338,16 +381,23 @@ const LocationServices: React.FC = () => {
     await updateSettings({ emergencyRadiusKm: nextRadius });
   };
 
+  /**
+   * Refresh now
+   */
   const refreshNow = async () => {
     try {
       await syncDeviceLocationStatus();
 
+      
+      
       if (!settings.locationEnabled) {
         Alert.alert("Location is OFF", "Turn on location first.");
         return;
       }
 
       const servicesEnabled = await Location.hasServicesEnabledAsync();
+      
+      
       if (!servicesEnabled) {
         await updateSettings({ locationEnabled: false, servicesEnabled: false });
         Alert.alert("GPS is OFF", "Please turn on GPS in device settings.");
@@ -355,6 +405,8 @@ const LocationServices: React.FC = () => {
       }
 
       const perm = await Location.getForegroundPermissionsAsync();
+      
+      
       if (perm.status !== "granted") {
         await updateSettings({
           locationEnabled: false,
@@ -365,6 +417,8 @@ const LocationServices: React.FC = () => {
       }
 
       const result = await requestPermissionAndFetchLocation(settings.accuracyMode);
+      
+      
       if (!result.granted) {
         Alert.alert("Error", "Could not access location.");
         return;

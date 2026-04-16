@@ -1,4 +1,6 @@
+import FeaturedUrgentCarousel from "@/components/ui/FeaturedUrgentCarousel";
 import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
+import RecentRequestsPreview from "@/components/ui/RecentRequestsPreview";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -129,6 +131,12 @@ const RequestsTab = () => {
               ))}
             </View>
           </View>
+
+          {/* Featured urgent carousel */}
+          <FeaturedUrgentCarousel />
+
+          {/* Recent Requests preview (top 3 + stats) */}
+          <RecentRequestsPreview />
 
           {/* DONOR CTA */}
           {!isVerifiedDonor && (

@@ -1,15 +1,11 @@
 import { useTheme } from "@/contexts/ThemeContext";
-import { uploadProfilePhotoAsync } from "@/services/firebase/profilePhoto";
 import { Ionicons } from "@expo/vector-icons";
-import * as ImageManipulator from "expo-image-manipulator";
-import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import { User } from "firebase/auth";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -25,7 +21,6 @@ interface ProfileData {
   displayName?: string;
   email?: string;
   phone?: string;
-  photoURL?: string;
 
   role?: "donor" | "hospital" | "bloodbank" | "requester" | "admin" | string;
   verified?: boolean;
@@ -60,9 +55,6 @@ const ProfileView: React.FC<ProfileViewProps> = ({
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState(profileData || {});
-  const [photoUploading, setPhotoUploading] = useState(false);
-
-  // Use props if provided, otherwise fallback to theme
   const accentColor = propAccentColor || theme.colors.primary;
   const backgroundColor = propBgColor || theme.colors.primaryLight;
   
@@ -110,73 +102,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     setIsEditing(false);
   };
 
-  /**
-   * Pick and upload photo
-   */
-  const pickAndUploadPhoto = async () => {
-    try {
-      setPhotoUploading(true);
 
-      // Permission
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      
-      if (!permission.granted) {
-        Alert.alert("Permission required", "Please allow photo library access.");
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        // @ts-ignore - Handle deprecation/runtime mismatch safely
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true, // user can crop
-        aspect: [1, 1],      // square crop (passport style)
-        quality: 0.9,
-      });
-
-      if (result.canceled) return;
-
-      const asset = result.assets?.[0];
-      if (!asset?.uri) return;
-
-      // Validate by file extension (fallback) + mime (if available)
-      const fileName = asset.fileName?.toLowerCase() || asset.uri.toLowerCase();
-      const isAllowed =
-        fileName.endsWith(".jpg") ||
-        fileName.endsWith(".jpeg") ||
-        fileName.endsWith(".png");
-
-      
-      
-      if (!isAllowed) {
-        Alert.alert("Invalid file", "Only JPG / JPEG / PNG files are allowed.");
-        return;
-      }
-
-      // Resize to PP-size-ish (square 512x512)
-      const manipulated = await ImageManipulator.manipulateAsync(
-        asset.uri,
-        [{ resize: { width: 512, height: 512 } }],
-        { compress: 0.9, format: ImageManipulator.SaveFormat.JPEG }
-      );
-
-      const { downloadURL } = await uploadProfilePhotoAsync({
-        uri: manipulated.uri,
-        mimeType: "image/jpeg", // we saved as jpeg above
-      });
-
-      // Update local profile state so Header updates immediately
-      const next = { ...(profileData || {}), photoURL: downloadURL };
-      await onUpdateProfile(next);
-
-      Alert.alert("✅ Updated", "Profile photo updated successfully.");
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert("Upload failed", e?.message || "Could not upload photo.");
-    } finally {
-      setPhotoUploading(false);
-    }
-  };
 
   
   
@@ -196,10 +122,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
     );
   }
 
-  const rawPhotoUri = profileData?.photoURL || user?.photoURL;
-  const photoUri = typeof rawPhotoUri === "string" && rawPhotoUri.length > 0
-    ? rawPhotoUri
-    : "";
+
 
   return (
     <SafeAreaView style={s.container}>
@@ -237,33 +160,12 @@ const ProfileView: React.FC<ProfileViewProps> = ({
         </View>
 
         <View style={s.photoRow}>
-          {photoUri ? (
-            <Image source={{ uri: photoUri }} style={s.avatar} />
-          ) : (
-            <View style={[s.avatar, s.avatarFallback, { backgroundColor: backgroundColor }]}>
-              <Text style={[s.avatarFallbackText, { color: accentColor }]}>
-                {(profileData?.displayName?.[0] ||
-                  profileData?.name?.[0] ||
-                  "U"
-                ).toUpperCase()}
-              </Text>
-            </View>
-          )}
-
-          <View style={{ flex: 1 }}>
-            <TouchableOpacity
-              style={[s.photoButton, dynamicStyles.accentButton]}
-              onPress={pickAndUploadPhoto}
-              disabled={photoUploading}
-              activeOpacity={0.8}
-            >
-              <Text style={s.photoButtonText}>
-                {photoUploading ? "Uploading…" : "Change Photo"}
-              </Text>
-            </TouchableOpacity>
-
-            <Text style={s.photoHint}>
-              JPG / PNG only · Crop to a clear face photo.
+          <View style={[s.avatar, s.avatarFallback, { backgroundColor: backgroundColor }]}>
+            <Text style={[s.avatarFallbackText, { color: accentColor }]}>
+              {(profileData?.displayName?.[0] ||
+                profileData?.name?.[0] ||
+                "U"
+              ).toUpperCase()}
             </Text>
           </View>
         </View>
@@ -384,7 +286,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({
           </TouchableOpacity>
         </View>
 
-        {(loading || photoUploading) && (
+        {loading && (
           <View style={s.loadingOverlay}>
             <ActivityIndicator size="large" color={accentColor} />
           </View>
@@ -449,7 +351,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 12,
     fontWeight: "600",
   },
-
   photoRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -470,15 +371,6 @@ const createStyles = (theme: any) => StyleSheet.create({
     fontSize: 28,
     fontWeight: "800",
   },
-  photoButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    alignItems: "center",
-    alignSelf: "flex-start",
-  },
-  photoButtonText: { color: "#fff", fontWeight: "700", fontSize: 14 },
-  photoHint: { marginTop: 6, fontSize: 11, color: theme.colors.textMuted },
 
   profileSection: { flex: 1, marginBottom: 24 },
   sectionHeader: {

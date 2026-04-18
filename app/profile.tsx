@@ -1,6 +1,6 @@
 import AuthForm from "@/components/ui/AuthForm";
 import ProfileView from "@/components/ui/ProfileView";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { useRouter } from "expo-router";
@@ -29,7 +29,7 @@ const Profile = () => {
     isLoading,
     setProfileData,
     refreshUserData,
-  } = useAuth();
+  } = useAuthStore();
 
   const { signUp, login, logout, loading: authLoading } = useAuthActions();
 

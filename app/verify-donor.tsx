@@ -1,5 +1,5 @@
 import Button from "@/components/common/Button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
     getMyVerificationRequest,
@@ -15,7 +15,6 @@ import {
     ActivityIndicator,
     Alert,
     Platform,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
@@ -23,6 +22,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
@@ -40,7 +40,7 @@ export default function VerifyDonor() {
   const router = useRouter();
   const { theme } = useTheme();
   const g = createGlobalStyles(theme);
-  const { user, profileData } = useAuth();
+  const { user, profileData } = useAuthStore();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);

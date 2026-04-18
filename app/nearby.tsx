@@ -7,13 +7,13 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import MapView, { Marker } from "react-native-maps";
 import { fetchNearbyHospitals, NearbyPlace } from "@/services/firebase/osm/overpass";
 

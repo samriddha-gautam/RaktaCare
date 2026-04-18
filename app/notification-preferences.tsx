@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { auth, db } from "@/services/firebase/config";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -8,7 +8,6 @@ import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
     Alert,
-    SafeAreaView,
     StyleSheet,
     Switch,
     Text,
@@ -16,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type NotificationPreferences = {
@@ -58,7 +58,7 @@ const isValidTime = (t: string) => /^\d{2}:\d{2}$/.test(t);
 export default function NotificationPreferencesScreen() {
   const { theme } = useTheme();
   const g = createGlobalStyles(theme);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore();
 
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
   const [distanceInput, setDistanceInput] = useState(

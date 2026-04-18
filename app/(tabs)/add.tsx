@@ -1,80 +1,79 @@
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
-import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBloodRequest } from "@/hooks/useCreateBloodRequest";
+import { useAuthStore } from "@/stores/authStore";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-  /**
- *  add
- */
+
+
 const Add = () => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
   const router = useRouter();
 
-  const { user, isAuthenticated, profileData, isLoading } = useAuth();
-  const role = profileData?.role; // "requester" | "donor" | "admin"
+  const { user, isAuthenticated, profileData, isLoading } = useAuthStore();
+  const role = profileData?.role;
 
   const { createBloodRequest, isSubmitting, getDefaultPhone } = useBloodRequest();
 
   const [selectedBloodType, setSelectedBloodType] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [location, setLocation] = useState<string>("");
-  const [contactPhone, setContactPhone] = useState<string>("");
+  const [contactPhone, setContactPhone] = useState<string>(profileData?.phone || "");
+  const [unitsNeeded, setUnitsNeeded] = useState<string>("1");
 
-  //  Guard: block donor/admin from opening this screen (UX)
+  // Guard: block donor/admin from opening this screen
   useEffect(() => {
-    // wait until auth finishes loading, otherwise it may flash
     if (isLoading) return;
 
-    
-    
     if (!isAuthenticated || !user) {
-      Alert.alert("Please log in", "Log in to create a blood request.");
-      router.back();
+      Alert.alert("Please log in", "Log in to create a blood request.", [
+        { text: "OK", onPress: () => router.replace("/") },
+      ]);
       return;
     }
 
-    
-    
     if (role === "donor" || role === "admin") {
-      Alert.alert("Not allowed", "Only requesters can create blood requests.");
-      router.back();
+      Alert.alert("Not allowed", "Only requesters can create blood requests.", [
+        { text: "OK", onPress: () => router.replace("/") },
+      ]);
       return;
     }
   }, [isLoading, isAuthenticated, user, role, router]);
 
   // Set default phone on mount / when profile changes
   useEffect(() => {
-    setContactPhone(getDefaultPhone());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (profileData?.phone && !contactPhone) {
+      setContactPhone(profileData.phone);
+    }
   }, [profileData?.phone]);
 
-  /**
-   * Handle submit
-   */
   const handleSubmit = async () => {
+    if (!selectedBloodType || !description || !location || !contactPhone) {
+      Alert.alert("Error", "Please fill in all required fields.");
+      return;
+    }
+
     const result = await createBloodRequest({
       bloodType: selectedBloodType,
       description,
       location,
       contactPhone,
+      unitsNeeded: parseInt(unitsNeeded, 10) || 1,
     });
 
-    
-    
     if (result.success) {
       Alert.alert("Success", "Your blood request has been created successfully!", [
         {
@@ -83,7 +82,8 @@ const Add = () => {
             setSelectedBloodType("");
             setDescription("");
             setLocation("");
-            setContactPhone(getDefaultPhone());
+            setUnitsNeeded("1");
+            setContactPhone(profileData?.phone || "");
             router.back();
           },
         },
@@ -93,11 +93,23 @@ const Add = () => {
     }
   };
 
+  if (isLoading) {
+     return (
+       <View style={[gstyles.container, styles.center]}>
+         <ActivityIndicator size="large" color={theme.colors.primary} />
+       </View>
+     );
+  }
+
+
+
   return (
     <View style={[gstyles.container, styles.container]}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={100}
       >
         <Text style={[gstyles.title, styles.title]}>Create Blood Request</Text>
         <Text style={[gstyles.textSecondary, styles.subtitle]}>
@@ -118,11 +130,38 @@ const Add = () => {
           />
         </View>
 
-        {/* Description */}
+        {/* Units Needed Selection */}
         <View style={styles.section}>
           <Text style={[gstyles.text, styles.label]}>
-            Description <Text style={styles.required}>*</Text>
+            Units Required <Text style={styles.required}>*</Text>
           </Text>
+          <TextInput
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                color: theme.colors.text,
+              },
+            ]}
+            placeholder="e.g., 2"
+            placeholderTextColor={theme.colors.textSecondary}
+            value={unitsNeeded}
+            onChangeText={setUnitsNeeded}
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Description */}
+        <View style={styles.section}>
+          <View style={styles.labelRow}>
+             <Text style={[gstyles.text, styles.label]}>
+              Description <Text style={styles.required}>*</Text>
+            </Text>
+          </View>
+          
+
+
           <TextInput
             style={[
               styles.input,
@@ -205,7 +244,7 @@ const Add = () => {
             <Text style={styles.submitButtonText}>Create Request</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 };
@@ -214,12 +253,17 @@ export default Add;
 
 const styles = StyleSheet.create({
   container: { paddingHorizontal: 0 },
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 40 },
   title: { marginTop: 10, marginBottom: 8 },
   subtitle: { marginBottom: 30, fontSize: 16 },
   section: { marginBottom: 24 },
   bloodTypeSection: { marginBottom: 24, marginLeft: -20 },
   label: { fontSize: 16, fontWeight: "600", marginBottom: 10 },
+  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  keywordsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  keywordChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
+  keywordText: { fontSize: 12, fontWeight: "700" },
   required: { color: "#DC2626" },
   input: {
     borderWidth: 1,

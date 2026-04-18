@@ -1,6 +1,8 @@
-import { useAuth } from "@/contexts/AuthContext";
 import { db } from "@/services/firebase/config";
+import { useAuthStore } from "@/stores/authStore";
+import * as Location from "expo-location";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { geohashForLocation } from "geofire-common";
 import { useState } from "react";
 
 export interface BloodRequestData {
@@ -8,15 +10,15 @@ export interface BloodRequestData {
   description: string;
   location: string;
   contactPhone: string;
+  urgency?: "critical" | "urgent" | "standard";
+  unitsNeeded?: number;
 }
 
 export const useBloodRequest = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const { user, profileData } = useAuth();
+  const { user, profileData } = useAuthStore();
 
   const validateRequest = (data: BloodRequestData): string | null => {
-    
-    
     if (!data.bloodType) {
       return "Please select a blood type";
     }
@@ -29,8 +31,6 @@ export const useBloodRequest = () => {
     if (!data.contactPhone.trim()) {
       return "Please enter a contact phone number";
     }
-    
-    
     if (!user) {
       return "You must be logged in to create a request";
     }
@@ -42,8 +42,6 @@ export const useBloodRequest = () => {
   ): Promise<{ success: boolean; error?: string }> => {
     // Validate
     const validationError = validateRequest(data);
-    
-    
     if (validationError) {
       return { success: false, error: validationError };
     }
@@ -51,15 +49,45 @@ export const useBloodRequest = () => {
     setIsSubmitting(true);
 
     try {
+      // Pin location based on the typed address using Nominatim
+      let coords = null;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(data.location.trim())}&format=json&limit=1`);
+        const json = await res.json();
+        if (json && json.length > 0) {
+            const lat = parseFloat(json[0].lat);
+            const lng = parseFloat(json[0].lon);
+            coords = {
+                lat,
+                lng,
+                geohash: geohashForLocation([lat, lng]),
+            };
+        }
+      } catch (locError) {
+        console.log("Could not reverse geocode typed location", locError);
+      }
+
+      // Detect urgency from description if not provided
+      let finalUrgency = data.urgency || "standard";
+      const descLower = data.description.toLowerCase();
+      if (descLower.includes("icu") || descLower.includes("critical") || descLower.includes("accident")) {
+        finalUrgency = "critical";
+      } else if (descLower.includes("urgent") || descLower.includes("emergency") || descLower.includes("surgery")) {
+        finalUrgency = "urgent";
+      }
+
       const requestData = {
         bloodType: data.bloodType,
         description: data.description.trim(),
-        location: data.location.trim(),
+        location: data.location.trim(), // string description
+        coords, // GPS location
         contactPhone: data.contactPhone.trim(),
         userId: user!.uid,
         userName: profileData?.name || profileData?.displayName || "Anonymous",
         userEmail: user!.email,
         status: "active",
+        urgency: finalUrgency,
+        unitsNeeded: data.unitsNeeded || 1,
         createdAt: serverTimestamp(),
       };
 

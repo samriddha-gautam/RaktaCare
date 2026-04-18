@@ -1,20 +1,20 @@
 import FeaturedUrgentCarousel from "@/components/ui/FeaturedUrgentCarousel";
 import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
 import RecentRequestsPreview from "@/components/ui/RecentRequestsPreview";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useRef } from "react";
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ActionButtonProps = {
   title: string;
@@ -59,7 +59,7 @@ const RequestsTab = () => {
   const styles = createGlobalStyles(theme);
   const headerRef = useRef<HeaderRef>(null);
 
-  const { isAuthenticated, profileData } = useAuth();
+  const { isAuthenticated, profileData } = useAuthStore();
   const isAdmin = profileData?.role === "admin";
   const isVerifiedDonor = profileData?.verified === true;
 

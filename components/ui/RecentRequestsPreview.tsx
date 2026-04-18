@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useBloodRequests, BloodRequest } from "@/hooks/useBloodRequests";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { router } from "expo-router";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -26,7 +26,7 @@ const MiniRequest = ({ r }: { r: BloodRequest }) => {
 };
 
 export default function RecentRequestsPreview() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const enabled = !authLoading && isAuthenticated && !!user?.uid;
   const { displayRequests, activeRequests, completedRequests } = useBloodRequests(enabled);
   const { theme } = useTheme();

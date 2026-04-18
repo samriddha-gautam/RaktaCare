@@ -26,6 +26,19 @@ export interface BloodRequest {
 
   createdAt: Timestamp;
 
+  // physical location for map pinning
+  coords?: {
+    lat: number;
+    lng: number;
+    geohash: string;
+  };
+
+  // urgency level for badges (critical, urgent, standard)
+  urgency?: "critical" | "urgent" | "standard";
+
+  // Number of units requested
+  unitsNeeded?: number;
+
   // optional fields written by update/delete
   updatedAt?: Timestamp;
   deletedAt?: Timestamp;

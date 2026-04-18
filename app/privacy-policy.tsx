@@ -4,13 +4,13 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
   Linking,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PRIVACY_SECTIONS = [
   {
@@ -27,7 +27,6 @@ const PRIVACY_SECTIONS = [
           "Full name, date of birth, and gender",
           "Email address and phone number",
           "Blood type and Rh factor",
-          "Profile photo (optional)",
         ],
       },
       {

@@ -1,5 +1,5 @@
 // components/ui/Header.tsx
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { router } from "expo-router";
 import React, {
@@ -11,7 +11,6 @@ import React, {
 } from "react";
 import {
   Animated,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -27,7 +26,6 @@ interface HeaderProps {
   animationDuration?: number;
   minScrollY?: number;
   userName?: string;
-  userImageUri?: string;
   onProfilePress?: () => void;
 }
 
@@ -51,10 +49,9 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
     ref
   ) => {
     const { theme } = useTheme();
-    const { profileData } = useAuth();
+    const { profileData } = useAuthStore();
 
     const userName = profileData?.displayName || profileData?.name || "Guest";
-    const userImageUri = profileData?.photoURL;
     const scrollY = useRef(new Animated.Value(0)).current;
     const headerTranslateY = useRef(new Animated.Value(0)).current;
     const lastScrollY = useRef(0);
@@ -155,9 +152,7 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
       [handleScroll, hideHeader, showHeader, resetHeader]
     );
 
-    // Derive the initial letter for the fallback avatar
     const initial = (userName?.[0] || "G").toUpperCase();
-    const hasPhoto = Boolean(userImageUri);
 
     return (
       <Animated.View
@@ -178,28 +173,17 @@ const Header = forwardRef<HeaderRef, HeaderProps>(
             onPress={navigateToProfile}
             activeOpacity={0.7}
           >
-            {/* ✅ FIX: only render <Image> when we have a valid URI */}
-            {hasPhoto ? (
-              <Image
-                source={{ uri: userImageUri! }}
-                style={[
-                  styles.profileImage,
-                  { borderColor: theme.colors.border },
-                ]}
-              />
-            ) : (
-              <View
-                style={[
-                  styles.profileImage,
-                  styles.profileFallback,
-                  { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.border },
-                ]}
-              >
-                <Text style={[styles.profileInitial, { color: theme.colors.primary }]}>
-                  {initial}
-                </Text>
-              </View>
-            )}
+            <View
+              style={[
+                styles.profileImage,
+                styles.profileFallback,
+                { backgroundColor: theme.colors.primaryLight, borderColor: theme.colors.border },
+              ]}
+            >
+              <Text style={[styles.profileInitial, { color: theme.colors.primary }]}>
+                {initial}
+              </Text>
+            </View>
             <View>
               <Text style={[styles.greeting, { color: theme.colors.textSecondary }]}>
                 Welcome back

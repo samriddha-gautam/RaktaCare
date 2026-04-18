@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
     Alert,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Switch,
@@ -13,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DONATION_TYPES = [
   { label: "Whole Blood", days: 56 },

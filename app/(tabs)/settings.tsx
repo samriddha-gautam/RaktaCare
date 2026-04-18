@@ -1,6 +1,6 @@
 import Button from "@/components/common/Button";
 import ThemeToggle from "@/components/common/ThemeToggle";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuthActions } from "@/hooks/useAuthActions";
 import { getUserProfile } from "@/services/firebase/usersRepo";
@@ -10,7 +10,6 @@ import { useFocusEffect, useRouter } from "expo-router";
 import React from "react";
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -18,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const NOTIF_PREFS_KEY = "notificationPreferences";
 const LOCATION_SETTINGS_KEY = "locationSettings";
@@ -127,7 +127,7 @@ const Settings: React.FC = () => {
   const router = useRouter();
 
   const { logout, loading: authLoading } = useAuthActions();
-  const { user, profileData, setProfileData } = useAuth();
+  const { user, profileData, setProfileData } = useAuthStore();
 
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(false);
   const [donationReminders, setDonationReminders] = React.useState(false);

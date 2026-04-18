@@ -10,7 +10,6 @@ import {
 import React, { useState } from "react";
 import {
     Alert,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
@@ -19,6 +18,7 @@ import {
     View,
     ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ChangePasswordScreen() {
   const { theme } = useTheme();

@@ -1,4 +1,4 @@
-import { haversineKm, LatLng } from "@/services/firebase/geo/distance";
+import { haversineKm, LatLng } from "@/utils/haversine";
 
 export type NearbyPlace = {
   id: string;
@@ -20,12 +20,11 @@ type OverpassElement = {
 
 export async function fetchNearbyHospitals(params: {
   center: LatLng;
-  radiusMeters: number; // e.g. 5000
+  radiusMeters: number; 
   limit?: number;
 }) {
   const { center, radiusMeters, limit = 30 } = params;
 
-  // Find hospitals around location
   const query = `
   [out:json][timeout:25];
   (
@@ -36,19 +35,22 @@ export async function fetchNearbyHospitals(params: {
   out center tags;
   `;
 
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: query,
-  });
-
-  
-  
-  if (!res.ok) {
-    throw new Error(`Overpass error: HTTP ${res.status}`);
+  let json;
+  try {
+    const res = await fetch("https://overpass.kumi.systems/api/interpreter", {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },
+      body: query,
+    });
+    if (!res.ok) {
+      console.warn(`Overpass error: HTTP ${res.status}`);
+      return [];
+    }
+    json = await res.json();
+  } catch (err) {
+    console.warn("Overpass fetch failed:", err);
+    return [];
   }
-
-  const json = await res.json();
   const elements: OverpassElement[] = json?.elements ?? [];
 
   const places: NearbyPlace[] = elements

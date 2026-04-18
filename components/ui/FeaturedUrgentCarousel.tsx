@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBloodRequests } from "@/hooks/useBloodRequests";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -17,7 +17,7 @@ import {
 export default function FeaturedUrgentCarousel() {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const enabled = !authLoading && isAuthenticated && !!user?.uid;
 
   const { displayRequests } = useBloodRequests(enabled);

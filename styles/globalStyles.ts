@@ -195,7 +195,6 @@ export const darkTheme: Theme = {
 export const createGlobalStyles = (theme: Theme) => StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: theme.spacing.xl,
     backgroundColor: theme.colors.background,
   },
   surface: {

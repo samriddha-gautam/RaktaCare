@@ -3,12 +3,13 @@ import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
 import RequestsFilterPanel, { DateRange, StatusFilter } from "@/components/ui/RequestsFilterPanel";
 import RequestsSearchBar from "@/components/ui/RequestsSearchBar";
-import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBloodRequests } from "@/hooks/useBloodRequests";
+import { useAuthStore } from "@/stores/authStore";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { RefreshControl, SafeAreaView, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const HomePage: React.FC = () => {
   const { theme } = useTheme();
@@ -21,34 +22,36 @@ const HomePage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateRange, setDateRange] = useState<DateRange>("3d");
 
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const enabled = !authLoading && isAuthenticated && !!user?.uid;
+  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+
+  // Always fetch requests — guests can browse, just can't act
+  const enabled = !authLoading;
 
   const {
     displayRequests,
     activeRequests,
-    error, //  your hook uses `error`
+    error,
     refreshing,
     refresh,
     toggleRequestStatus,
   } = useBloodRequests(enabled);
 
-  const errorRequests = error ?? null;
+  const errorRequests = useMemo(() => {
+    if (!error) return null;
+    if (error.includes("permissions") || error.includes("permission-denied")) {
+      return "Guest mode limited. Please login to view real-time requests or update Firestore rules to allow public reads.";
+    }
+    return error;
+  }, [error]);
 
   const handleScroll = useCallback((event: any) => {
     headerRef.current?.handleScroll(event);
   }, []);
 
-  /**
-   * Handle blood type select
-   */
   const handleBloodTypeSelect = (bloodType: string) => {
     setSelectedBloodType((prev) => (prev === bloodType ? "" : bloodType));
   };
 
-  /**
-   * Reset filters
-   */
   const resetFilters = () => {
     setSearchText("");
     setSelectedBloodType("");
@@ -59,8 +62,6 @@ const HomePage: React.FC = () => {
   const filteredRequests = useMemo(() => {
     let list = [...displayRequests];
 
-    // date filter: dateRange -> cutoff
-    
     if (dateRange !== "all") {
       const now = new Date();
       let cutoff = new Date();
@@ -73,19 +74,14 @@ const HomePage: React.FC = () => {
       });
     }
 
-    // status filter
-    
     if (statusFilter !== "all") {
       list = list.filter((r) => r.status === statusFilter);
     }
 
-    // blood type filter from horizontal chips
-    
     if (selectedBloodType) {
       list = list.filter((r) => r.bloodType === selectedBloodType);
     }
 
-    // search text (location, description, userName)
     if (searchText && searchText.trim().length > 0) {
       const q = searchText.trim().toLowerCase();
       list = list.filter((r) => {
@@ -121,8 +117,7 @@ const HomePage: React.FC = () => {
           />
         }
       >
-        {/* Search + Filters */}
-        <View style={{ paddingVertical: 12 }}>
+        <View style={{ paddingBottom: 12 }}>
           <RequestsSearchBar value={searchText} onChange={setSearchText} />
           <RequestsFilterPanel
             status={statusFilter}

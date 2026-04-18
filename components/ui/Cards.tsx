@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { router } from "expo-router";
@@ -11,22 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-interface BloodRequest {
-  id: string;
-  bloodType: string;
-  description: string;
-  location: string;
-  contactPhone: string;
-  userId: string;
-  userName: string;
-  userEmail: string | null;
-
-  //  include deleted to match Firestore data/hook
-  status: "active" | "completed" | "deleted";
-
-  createdAt: any;
-}
+import { BloodRequest } from "@/hooks/useBloodRequests";
 
 interface CardsProps {
   filterBloodType?: string;
@@ -52,7 +37,7 @@ const Cards = ({
 }: CardsProps) => {
   const { theme } = useTheme();
   const gstyles = createGlobalStyles(theme);
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   //  filter out deleted everywhere
   const visibleDisplayRequests = useMemo(
@@ -92,8 +77,6 @@ const Cards = ({
           text: "Confirm",
           onPress: async () => {
             const result = await toggleRequestStatus(requestId, currentStatus);
-            
-            
             if (result.success) {
               Alert.alert(
                 "Success",
@@ -108,6 +91,28 @@ const Cards = ({
         },
       ]
     );
+  };
+
+  /**
+   * Open details
+   */
+  const openDetails = (request: BloodRequest) => {
+    const { isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated) {
+      Alert.alert(
+        "Login Required",
+        "Please login to view emergency request details and contact information.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Go to Login", onPress: () => router.push("/profile") }
+        ]
+      );
+      return;
+    }
+    router.push({
+      pathname: "/request-details/[id]",
+      params: { id: request.id },
+    });
   };
 
   /**
@@ -129,33 +134,6 @@ const Cards = ({
     return `${diffInDays} days ago`;
   };
 
-  /**
-   * Open details
-   */
-  const openDetails = (request: BloodRequest) => {
-    router.push({
-      pathname: "/request-details/[id]",
-      params: { id: request.id },
-    });
-  };
-
-  
-  
-  if (!enabled) {
-    return (
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, gstyles.text]}>Recent Requests</Text>
-        <View style={styles.emptyContainer}>
-          <Text style={[gstyles.text, styles.emptyText]}>
-            Please login to view blood requests.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  
-  
   if (isLoadingRequests) {
     return (
       <View style={styles.section}>
@@ -167,8 +145,6 @@ const Cards = ({
     );
   }
 
-  
-  
   if (errorRequests) {
     return (
       <View style={styles.section}>
@@ -180,8 +156,6 @@ const Cards = ({
     );
   }
 
-  
-  
   if (filteredRequests.length === 0) {
     return (
       <View style={styles.section}>
@@ -225,9 +199,31 @@ const Cards = ({
 
           <View style={styles.recentContent}>
             <View style={styles.headerRow}>
-              <Text style={[styles.recentTitle, { color: theme.colors.text }]}>
-                {request.bloodType}
-              </Text>
+              <View style={styles.leftHeader}>
+                  <Text style={[styles.recentTitle, { color: theme.colors.text }]}>
+                    {request.bloodType}
+                  </Text>
+                  {(() => {
+                      let displayUrg = request.urgency || "standard";
+                      const desc = (request.description || "").toLowerCase();
+                      if (desc.includes("icu") || desc.includes("critical") || desc.includes("accident") || desc.includes("heavy bleeding")) {
+                          displayUrg = "critical";
+                      } else if (desc.includes("urgent") || desc.includes("emergency") || desc.includes("surgery") || desc.includes("delivery")) {
+                          if (displayUrg !== "critical") displayUrg = "urgent";
+                      }
+                      
+                      if (displayUrg) {
+                         return (
+                           <View style={[styles.urgencyBadge, { 
+                               backgroundColor: displayUrg === 'critical' ? '#EF4444' : displayUrg === 'urgent' ? '#F59E0B' : '#10B981' 
+                           }]}>
+                               <Text style={styles.urgencyText}>{displayUrg.toUpperCase()}</Text>
+                           </View>
+                         );
+                      }
+                      return null;
+                  })()}
+              </View>
               <View
                 style={[
                   styles.statusBadge,
@@ -281,55 +277,25 @@ export default Cards;
 
 const styles = StyleSheet.create({
   section: { marginTop: 20 },
-  headerContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginHorizontal: 20,
-    marginBottom: 15,
-  },
-  sectionTitle: { fontSize: 22, fontWeight: "bold", marginHorizontal: 20 },
-  requestCount: { fontSize: 14 },
-  recentCard: {
-    marginHorizontal: 20,
-    marginBottom: 12,
-    borderRadius: 14,
-    flexDirection: "row",
-    padding: 14,
-  },
+  headerContainer: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginHorizontal: 20, marginBottom: 15 },
+  sectionTitle: { fontSize: 22, fontWeight: "bold" },
+  requestCount: { fontSize: 14, marginRight: 20 },
+  recentCard: { marginHorizontal: 20, marginBottom: 12, borderRadius: 14, flexDirection: "row", padding: 14 },
   completedCard: { opacity: 0.5 },
-  recentImage: {
-    width: 72,
-    height: 72,
-    borderRadius: 10,
-    marginRight: 14,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  recentImage: { width: 72, height: 72, borderRadius: 10, marginRight: 14, justifyContent: "center", alignItems: "center" },
   bloodTypeInImage: { color: "#fff", fontSize: 22, fontWeight: "bold" },
   recentContent: { flex: 1, justifyContent: "space-between" },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
+  headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  leftHeader: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   recentTitle: { fontSize: 18, fontWeight: "bold" },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  statusText: {
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: "bold",
-    textTransform: "uppercase",
-  },
-  recentDescription: { fontSize: 14, marginTop: 4 },
+  statusText: { color: "#fff", fontSize: 10, fontWeight: "bold", textTransform: "uppercase" },
+  urgencyBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
+  urgencyText: { color: '#FFF', fontSize: 8, fontWeight: '900' },
+  recentDescription: { fontSize: 13, marginTop: 4, opacity: 0.8 },
   recentLocation: { fontSize: 14, fontWeight: "600", marginTop: 4 },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  timeText: { fontSize: 12 },
+  footerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 },
+  timeText: { fontSize: 12, color: '#9CA3AF' },
   toggleButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
   toggleButtonText: { color: "#fff", fontSize: 12, fontWeight: "600" },
   loadingContainer: { padding: 40, alignItems: "center" },

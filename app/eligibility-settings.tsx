@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
   StyleSheet,
   Switch,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 // Nepal Red Cross Society eligibility criteria
@@ -192,7 +192,7 @@ const EligibilitySettings: React.FC = () => {
   const globalStyles = createGlobalStyles(theme);
   const router = useRouter();
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore();
 
   const [data, setData] = useState<EligibilityData>(DEFAULT_DATA);
   const [eligibilityStatus, setEligibilityStatus] = useState<

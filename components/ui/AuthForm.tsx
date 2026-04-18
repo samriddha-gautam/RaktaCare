@@ -1,8 +1,6 @@
-import * as ImagePicker from 'expo-image-picker';
 import React, { useMemo, useState } from "react";
 import {
   Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,7 +15,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
-  onSignup: (email: string, password: string, name: string, photoUri?: string) => Promise<void>;
+  onSignup: (email: string, password: string, name: string) => Promise<void>;
   loading?: boolean;
   accentColor?: string;
   backgroundColor?: string;

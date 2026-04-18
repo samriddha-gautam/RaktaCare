@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { auth, db } from "@/services/firebase/config";
 import {
   createUserWithEmailAndPassword,
@@ -11,7 +11,7 @@ import { useState } from "react";
 
 export const useAuthActions = () => {
   const [loading, setLoading] = useState(false);
-  const { clearAllData, setProfileData } = useAuth();
+  const { clearAllData, setProfileData } = useAuthStore();
 
   const signUp = async (
     email: string,
@@ -156,7 +156,6 @@ export const useAuthActions = () => {
   const updateUserProfile = async (updates: {
     displayName?: string;
     phone?: string;
-    photoURL?: string;
   }) => {
     setLoading(true);
     try {

@@ -1,5 +1,5 @@
 import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { db } from "@/services/firebase/config";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -19,13 +19,13 @@ import {
     ActivityIndicator,
     Alert,
     RefreshControl,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type MyRequest = {
   id: string;
@@ -46,7 +46,7 @@ export default function MyRequests() {
   const g = createGlobalStyles(theme);
   const headerRef = useRef<HeaderRef>(null);
 
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const enabled = !authLoading && isAuthenticated && !!user?.uid;
 
   const [loading, setLoading] = useState(true);

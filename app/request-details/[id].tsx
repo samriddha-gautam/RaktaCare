@@ -58,7 +58,7 @@ export default function RequestDetailsScreen() {
         const data = { id: snap.id, ...snap.data() } as BloodRequest;
         setRequest(data);
         return data;
-
+        
         } catch (e: any) {
         setError(e.message || "Failed to load request");
       } finally {
@@ -107,7 +107,6 @@ export default function RequestDetailsScreen() {
                 setDestinationCoords(newCoords);
             } else {
                 console.log("Nominatim found no coordinates for this location.");
-                // Fallback to request DB coords if Nominatim fails completely
                 if (request?.coords?.lat) {
                     console.log("Using fallback DB coords:", request.coords);
                     setDestinationCoords({ lat: request.coords.lat, lng: request.coords.lng });

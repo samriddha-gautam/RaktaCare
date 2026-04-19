@@ -51,13 +51,9 @@ const Profile = () => {
       return;
     }
 
-    //  redirect to landing after successful login
     router.replace("/(tabs)");
   };
 
-  /**
-   * Handle sign up
-   */
   const handleSignUp = async (email: string, password: string, name: string) => {
     shouldRedirectAfterAuth.current = true;
 

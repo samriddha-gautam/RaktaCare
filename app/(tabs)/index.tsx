@@ -1,4 +1,5 @@
 import Cards from "@/components/ui/Cards";
+import DemandAnalyticsCard from "@/components/ui/DemandAnalyticsCard";
 import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
 import HorizontalScroll from "@/components/ui/HorizontalScroll";
 import RequestsFilterPanel, { DateRange, StatusFilter } from "@/components/ui/RequestsFilterPanel";
@@ -22,10 +23,13 @@ const HomePage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateRange, setDateRange] = useState<DateRange>("3d");
 
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { isAuthenticated, isLoading: authLoading, profileData } = useAuthStore();
 
   // Always fetch requests — guests can browse, just can't act
   const enabled = !authLoading;
+
+  // determine admin from profileData.role
+  const isAdmin = profileData?.role === "admin";
 
   const {
     displayRequests,
@@ -127,6 +131,11 @@ const HomePage: React.FC = () => {
             reset={resetFilters}
           />
         </View>
+
+        {/* Analytics Chart (admin only) */}
+        {isAdmin && filteredRequests?.length > 0 && (
+          <DemandAnalyticsCard requests={filteredRequests} />
+        )}
 
         <HorizontalScroll
           selectedBloodType={selectedBloodType}

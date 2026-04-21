@@ -1,15 +1,15 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { auth, db } from "@/services/firebase/config";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
+import { geohashForLocation } from "geofire-common";
 import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
   StyleSheet,
   Switch,
   Text,
@@ -17,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type AccuracyMode = "balanced" | "high";
@@ -50,6 +51,9 @@ const DEFAULT_SETTINGS: LocationSettings = {
   lastKnownLocation: null,
 };
 
+/**
+ * Clamp
+ */
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
@@ -57,45 +61,63 @@ const LocationServices: React.FC = () => {
   const { theme } = useTheme();
   const globalStyles = createGlobalStyles(theme);
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore();
 
   const [settings, setSettings] = useState<LocationSettings>(DEFAULT_SETTINGS);
   const [radiusInput, setRadiusInput] = useState(
     String(DEFAULT_SETTINGS.emergencyRadiusKm)
   );
 
+  /**
+   * Persist remote user location settings
+   */
   const persistRemoteUserLocationSettings = async (next: LocationSettings) => {
     const user = auth.currentUser;
     if (!user) return;
 
     try {
-      await setDoc(
-        doc(db, "users", user.uid),
-        {
-          locationEnabled: next.locationEnabled,
-          emergencyRadiusKm: next.emergencyRadiusKm,
-          accuracyMode: next.accuracyMode,
-          sharePreciseLocation: next.sharePreciseLocation,
-          permissionStatus: next.permissionStatus ?? "undetermined",
-          servicesEnabled: next.servicesEnabled ?? null,
-          lastKnownLocation: next.lastKnownLocation ?? null,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      const patch: any = {
+        locationEnabled: next.locationEnabled,
+        emergencyRadiusKm: next.emergencyRadiusKm,
+        accuracyMode: next.accuracyMode,
+        sharePreciseLocation: next.sharePreciseLocation,
+        permissionStatus: next.permissionStatus ?? "undetermined",
+        servicesEnabled: next.servicesEnabled ?? null,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (next.lastKnownLocation) {
+        const { lat, lng } = next.lastKnownLocation;
+        const geohash = geohashForLocation([lat, lng]);
+        
+        // Following Section 5: currentLocation: { lat, lng, geohash, updatedAt }
+        patch.currentLocation = {
+          lat,
+          lng,
+          geohash,
+          updatedAt: next.lastKnownLocation.updatedAt,
+        };
+        
+        // Maintain lastKnownLocation for UI state if needed, but Firestore now has currentLocation
+        patch.lastKnownLocation = {
+          ...next.lastKnownLocation,
+          geohash
+        };
+      }
+
+      await setDoc(doc(db, "users", user.uid), patch, { merge: true });
     } catch (e) {
       console.log("Failed to sync location settings to Firestore", e);
     }
   };
 
-  // ✅ Always update from latest state (prevents stale state bugs)
+  /**
+   * Update settings
+   */
   const updateSettings = async (patch: Partial<LocationSettings>) => {
-    let nextValue: LocationSettings = DEFAULT_SETTINGS;
+    const nextValue: LocationSettings = { ...settings, ...patch };
 
-    setSettings((prev) => {
-      nextValue = { ...prev, ...patch };
-      return nextValue;
-    });
+    setSettings(nextValue);
 
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextValue));
@@ -110,6 +132,9 @@ const LocationServices: React.FC = () => {
     return nextValue;
   };
 
+  /**
+   * Sync device location status
+   */
   const syncDeviceLocationStatus = async () => {
     try {
       const servicesEnabled = await Location.hasServicesEnabledAsync();
@@ -122,7 +147,6 @@ const LocationServices: React.FC = () => {
           ? "denied"
           : "undetermined";
 
-      // ✅ Update only status fields; do NOT flip user setting or erase lastKnownLocation
       await updateSettings({
         servicesEnabled,
         permissionStatus,
@@ -164,6 +188,9 @@ const LocationServices: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Request permission and fetch location
+   */
   const requestPermissionAndFetchLocation = async (mode: AccuracyMode) => {
     const servicesEnabled = await Location.hasServicesEnabledAsync();
 
@@ -205,6 +232,9 @@ const LocationServices: React.FC = () => {
     };
   };
 
+  /**
+   * Handle toggle location
+   */
   const handleToggleLocation = async (value: boolean) => {
     if (!value) {
       await updateSettings({ locationEnabled: false });
@@ -223,7 +253,6 @@ const LocationServices: React.FC = () => {
       return;
     }
 
-    // Optimistic ON
     await updateSettings({ locationEnabled: true });
 
     try {
@@ -326,6 +355,9 @@ const LocationServices: React.FC = () => {
     theme,
   ]);
 
+  /**
+   * Apply radius
+   */
   const applyRadius = async () => {
     const parsed = Number(radiusInput);
     if (!Number.isFinite(parsed)) {
@@ -338,6 +370,9 @@ const LocationServices: React.FC = () => {
     await updateSettings({ emergencyRadiusKm: nextRadius });
   };
 
+  /**
+   * Refresh now
+   */
   const refreshNow = async () => {
     try {
       await syncDeviceLocationStatus();

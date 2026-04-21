@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -6,7 +6,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
   StyleSheet,
   Switch,
   Text,
@@ -14,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 // Nepal Red Cross Society eligibility criteria
@@ -192,7 +192,7 @@ const EligibilitySettings: React.FC = () => {
   const globalStyles = createGlobalStyles(theme);
   const router = useRouter();
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore();
 
   const [data, setData] = useState<EligibilityData>(DEFAULT_DATA);
   const [eligibilityStatus, setEligibilityStatus] = useState<
@@ -207,9 +207,14 @@ const EligibilitySettings: React.FC = () => {
     checkEligibility();
   }, [data]);
 
+  /**
+   * Load settings
+   */
   const loadSettings = async () => {
     try {
       const saved = await AsyncStorage.getItem("eligibilitySettings");
+      
+      
       if (saved) {
         setData({ ...DEFAULT_DATA, ...JSON.parse(saved) });
       }
@@ -218,7 +223,12 @@ const EligibilitySettings: React.FC = () => {
     }
   };
 
+  /**
+   * Save settings
+   */
   const saveSettings = async () => {
+    
+    
     if (!isAuthenticated) {
       Alert.alert("Please log in", "Log in to save your eligibility info.", [
         { text: "Cancel", style: "cancel" },
@@ -239,6 +249,9 @@ const EligibilitySettings: React.FC = () => {
     setData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  /**
+   * Toggle permanent condition
+   */
   const togglePermanentCondition = (id: string) => {
     setData((prev) => ({
       ...prev,
@@ -249,6 +262,9 @@ const EligibilitySettings: React.FC = () => {
     }));
   };
 
+  /**
+   * Toggle temporary condition
+   */
   const toggleTemporaryCondition = (id: string) => {
     setData((prev) => ({
       ...prev,
@@ -259,6 +275,9 @@ const EligibilitySettings: React.FC = () => {
     }));
   };
 
+  /**
+   * Check eligibility
+   */
   const checkEligibility = () => {
     const age = parseInt(data.age);
     const weight = parseFloat(data.weight);
@@ -266,6 +285,8 @@ const EligibilitySettings: React.FC = () => {
     const systolic = parseInt(data.systolicBP);
     const diastolic = parseInt(data.diastolicBP);
 
+    
+    
     if (!data.bloodType || !data.age || !data.weight) {
       setEligibilityStatus("incomplete");
       return;
@@ -274,19 +295,27 @@ const EligibilitySettings: React.FC = () => {
     const hasPermanent = Object.values(data.permanentConditions).some(
       (v) => v === true
     );
+    
+    
     if (hasPermanent) {
       setEligibilityStatus("ineligible");
       return;
     }
 
+    
+    
     if (age < 18 || age > 60) {
       setEligibilityStatus("ineligible");
       return;
     }
+    
+    
     if (weight < 45) {
       setEligibilityStatus("ineligible");
       return;
     }
+    
+    
     if (hb && hb < 12) {
       setEligibilityStatus("ineligible");
       return;
@@ -303,6 +332,8 @@ const EligibilitySettings: React.FC = () => {
     const hasTemporary = Object.values(data.temporaryConditions).some(
       (v) => v === true
     );
+    
+    
     if (hasTemporary) {
       setEligibilityStatus("temporary");
       return;
@@ -311,7 +342,12 @@ const EligibilitySettings: React.FC = () => {
     setEligibilityStatus("eligible");
   };
 
+  /**
+   * Get status config
+   */
   const getStatusConfig = () => {
+    
+    
     switch (eligibilityStatus) {
       case "eligible":
         return {
@@ -350,6 +386,8 @@ const EligibilitySettings: React.FC = () => {
 
   const statusConfig = getStatusConfig();
 
+  
+  
   if (!isAuthenticated) {
     return (
       <SafeAreaView style={globalStyles.container}>

@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { auth, db } from "@/services/firebase/config";
 import {
   createUserWithEmailAndPassword,
@@ -11,7 +11,7 @@ import { useState } from "react";
 
 export const useAuthActions = () => {
   const [loading, setLoading] = useState(false);
-  const { clearAllData, setProfileData } = useAuth();
+  const { clearAllData, setProfileData } = useAuthStore();
 
   const signUp = async (
     email: string,
@@ -27,6 +27,8 @@ export const useAuthActions = () => {
       );
       const user = userCredential.user;
 
+      
+      
       if (displayName) {
         await updateProfile(user, { displayName });
       }
@@ -55,7 +57,10 @@ export const useAuthActions = () => {
     }
   };
 
-  // ✅ FIXED LOGIN (auto-migrate missing fields)
+  //  FIXED LOGIN (auto-migrate missing fields)
+  /**
+   * Login
+   */
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {
@@ -76,10 +81,12 @@ export const useAuthActions = () => {
         if (userDoc.exists()) {
           profileData = userDoc.data();
 
-          // ✅ Migration: add missing fields for old accounts
+          //  Migration: add missing fields for old accounts
           const needsRole = profileData.role === undefined;
           const needsVerified = profileData.verified === undefined;
 
+          
+          
           if (needsRole || needsVerified) {
             const patch: any = {};
             if (needsRole) patch.role = "donor";
@@ -130,6 +137,9 @@ export const useAuthActions = () => {
     }
   };
 
+  /**
+   * Logout
+   */
   const logout = async () => {
     setLoading(true);
     try {
@@ -146,10 +156,11 @@ export const useAuthActions = () => {
   const updateUserProfile = async (updates: {
     displayName?: string;
     phone?: string;
-    photoURL?: string;
   }) => {
     setLoading(true);
     try {
+      
+      
       if (!auth.currentUser) {
         throw new Error("No user is currently logged in");
       }
@@ -175,6 +186,8 @@ export const useAuthActions = () => {
         updatedAt: new Date().toISOString(),
       };
 
+      
+      
       if (auth.currentUser.uid) {
         await setDoc(doc(db, "users", auth.currentUser.uid), updatedProfileData, {
           merge: true,
@@ -201,6 +214,8 @@ export const useAuthActions = () => {
 };
 
 const getErrorMessage = (error: any): string => {
+  
+  
   switch (error.code) {
     case "auth/email-already-in-use":
       return "An account with this email already exists.";
@@ -219,6 +234,9 @@ const getErrorMessage = (error: any): string => {
   }
 };
 
+  /**
+ * Get stored profile data
+ */
 const getStoredProfileData = async () => {
   try {
     const AsyncStorage =

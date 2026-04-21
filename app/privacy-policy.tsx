@@ -4,13 +4,13 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
   Linking,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PRIVACY_SECTIONS = [
   {
@@ -27,7 +27,6 @@ const PRIVACY_SECTIONS = [
           "Full name, date of birth, and gender",
           "Email address and phone number",
           "Blood type and Rh factor",
-          "Profile photo (optional)",
         ],
       },
       {
@@ -157,6 +156,9 @@ const PrivacyPolicy: React.FC = () => {
   const globalStyles = createGlobalStyles(theme);
   const router = useRouter();
 
+  /**
+   * Render bullet item
+   */
   const renderBulletItem = (item: string, index: number) => (
     <View key={index} style={styles.bulletRow}>
       <Text style={[styles.bullet, { color: theme.colors.primary }]}>•</Text>

@@ -1,5 +1,5 @@
 import Button from "@/components/common/Button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   approveVerificationRequest,
@@ -12,7 +12,6 @@ import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -20,13 +19,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import type { VerificationRequest } from "@/services/firebase/verification/verificationRepo";
 
 export default function AdminVerifications() {
   const router = useRouter();
   const { theme } = useTheme();
   const g = createGlobalStyles(theme);
-  const { user, profileData } = useAuth();
+  const { user, profileData } = useAuthStore();
 
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<VerificationRequest[]>([]);
@@ -36,6 +36,9 @@ export default function AdminVerifications() {
 
   const isAdmin = profileData?.role === "admin";
 
+  /**
+   * Load
+   */
   const load = async () => {
     setLoading(true);
     try {
@@ -53,6 +56,9 @@ export default function AdminVerifications() {
     load();
   }, []);
 
+  /**
+   * Approve
+   */
   const approve = async (uid: string) => {
     if (!user?.uid) return;
     try {
@@ -64,9 +70,14 @@ export default function AdminVerifications() {
     }
   };
 
+  /**
+   * Reject
+   */
   const reject = async (uid: string) => {
     if (!user?.uid) return;
     const reason = (rejectReasonByUid[uid] || "").trim();
+    
+    
     if (!reason) {
       Alert.alert("Reason required", "Please enter a rejection reason.");
       return;
@@ -80,6 +91,8 @@ export default function AdminVerifications() {
     }
   };
 
+  
+  
   if (!isAdmin) {
     return (
       <SafeAreaView style={g.container}>

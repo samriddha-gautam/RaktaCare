@@ -1,5 +1,5 @@
 import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { db } from "@/services/firebase/config";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -19,13 +19,13 @@ import {
     ActivityIndicator,
     Alert,
     RefreshControl,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type MyRequest = {
   id: string;
@@ -46,7 +46,7 @@ export default function MyRequests() {
   const g = createGlobalStyles(theme);
   const headerRef = useRef<HeaderRef>(null);
 
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
   const enabled = !authLoading && isAuthenticated && !!user?.uid;
 
   const [loading, setLoading] = useState(true);
@@ -67,6 +67,8 @@ export default function MyRequests() {
   }, []);
 
   useEffect(() => {
+    
+    
     if (!enabled || !user?.uid) {
       setItems([]);
       setLoading(false);
@@ -119,6 +121,9 @@ export default function MyRequests() {
     [visibleItems]
   );
 
+  /**
+   * Format date
+   */
   const formatDate = (timestamp: any) => {
     if (!timestamp) return "Just now";
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -132,6 +137,9 @@ export default function MyRequests() {
     return `${diffInDays} days ago`;
   };
 
+  /**
+   * Toggle status
+   */
   const toggleStatus = async (id: string, current: "active" | "completed") => {
     try {
       const ref = doc(db, "bloodRequests", id);
@@ -143,6 +151,9 @@ export default function MyRequests() {
     }
   };
 
+  /**
+   * Soft delete
+   */
   const softDelete = async (id: string) => {
     try {
       const ref = doc(db, "bloodRequests", id);
@@ -157,6 +168,9 @@ export default function MyRequests() {
     }
   };
 
+  /**
+   * Confirm toggle
+   */
   const confirmToggle = (req: MyRequest) => {
     if (req.status === "deleted") return;
 
@@ -177,6 +191,9 @@ export default function MyRequests() {
     );
   };
 
+  /**
+   * Confirm delete
+   */
   const confirmDelete = (req: MyRequest) => {
     Alert.alert(
       "Delete Request",
@@ -195,6 +212,8 @@ export default function MyRequests() {
     );
   };
 
+  
+  
   if (!enabled) {
     return (
       <SafeAreaView style={g.container}>

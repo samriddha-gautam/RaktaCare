@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { auth, db } from "@/services/firebase/config";
 import { createGlobalStyles } from "@/styles/globalStyles";
@@ -8,7 +8,6 @@ import { doc, setDoc } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
     Alert,
-    SafeAreaView,
     StyleSheet,
     Switch,
     Text,
@@ -16,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 type NotificationPreferences = {
@@ -44,21 +44,30 @@ const DEFAULT_PREFS: NotificationPreferences = {
   lastUpdatedAt: undefined,
 };
 
+  /**
+ * Clamp
+ */
 const clamp = (n: number, min: number, max: number) =>
   Math.max(min, Math.min(max, n));
 
+  /**
+ * Is valid time
+ */
 const isValidTime = (t: string) => /^\d{2}:\d{2}$/.test(t);
 
 export default function NotificationPreferencesScreen() {
   const { theme } = useTheme();
   const g = createGlobalStyles(theme);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuthStore();
 
   const [prefs, setPrefs] = useState<NotificationPreferences>(DEFAULT_PREFS);
   const [distanceInput, setDistanceInput] = useState(
     String(DEFAULT_PREFS.maxDistanceKm)
   );
 
+  /**
+   * Save local
+   */
   const saveLocal = async (next: NotificationPreferences) => {
     setPrefs(next);
     try {
@@ -68,6 +77,9 @@ export default function NotificationPreferencesScreen() {
     }
   };
 
+  /**
+   * Save remote
+   */
   const saveRemote = async (next: NotificationPreferences) => {
     const user = auth.currentUser;
     if (!user) return;
@@ -89,9 +101,14 @@ export default function NotificationPreferencesScreen() {
     }
   };
 
+  /**
+   * Save
+   */
   const save = async (next: NotificationPreferences) => {
     const withMeta = { ...next, lastUpdatedAt: new Date().toISOString() };
     await saveLocal(withMeta);
+    
+    
     if (isAuthenticated) {
       await saveRemote(withMeta);
     }
@@ -117,6 +134,8 @@ export default function NotificationPreferencesScreen() {
   }, []);
 
   const statusConfig = useMemo(() => {
+    
+    
     if (!isAuthenticated) {
       return {
         color: theme.colors.danger,
@@ -126,6 +145,8 @@ export default function NotificationPreferencesScreen() {
         emoji: "🔒",
       };
     }
+    
+    
     if (!prefs.notificationsEnabled) {
       return {
         color: theme.colors.danger,
@@ -135,6 +156,8 @@ export default function NotificationPreferencesScreen() {
         emoji: "🔕",
       };
     }
+    
+    
     if (!prefs.emergencyRequestsEnabled && !prefs.donationRemindersEnabled) {
       return {
         color: theme.colors.warning,
@@ -153,6 +176,9 @@ export default function NotificationPreferencesScreen() {
     };
   }, [isAuthenticated, prefs, theme]);
 
+  /**
+   * Apply distance
+   */
   const applyDistance = async () => {
     const parsed = Number(distanceInput);
     if (!Number.isFinite(parsed)) {
@@ -165,6 +191,9 @@ export default function NotificationPreferencesScreen() {
     await save({ ...prefs, maxDistanceKm: nextDist });
   };
 
+  /**
+   * Set time
+   */
   const setTime = async (key: "quietHoursStart" | "quietHoursEnd", value: string) => {
     const next = value.trim();
     if (!isValidTime(next)) {
@@ -228,6 +257,8 @@ export default function NotificationPreferencesScreen() {
                <Switch
                   value={prefs.emergencyRequestsEnabled}
                   onValueChange={(v) => {
+                    
+                    
                     if (!prefs.notificationsEnabled && v) {
                        Alert.alert("Enable Master", "Turn on notifications master switch first.");
                        return;
@@ -247,6 +278,8 @@ export default function NotificationPreferencesScreen() {
                <Switch
                   value={prefs.donationRemindersEnabled}
                   onValueChange={(v) => {
+                    
+                    
                     if (!prefs.notificationsEnabled && v) {
                        Alert.alert("Enable Master", "Turn on notifications master switch first.");
                        return;

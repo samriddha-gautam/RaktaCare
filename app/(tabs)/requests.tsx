@@ -1,20 +1,20 @@
 import FeaturedUrgentCarousel from "@/components/ui/FeaturedUrgentCarousel";
 import Header, { DEFAULT_HEADER_HEIGHT, HeaderRef } from "@/components/ui/Header";
 import RecentRequestsPreview from "@/components/ui/RecentRequestsPreview";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { router } from "expo-router";
 import React, { useCallback, useMemo, useRef } from "react";
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type ActionButtonProps = {
   title: string;
@@ -22,6 +22,9 @@ type ActionButtonProps = {
   variant?: "primary" | "secondary";
 };
 
+  /**
+ *  action button
+ */
 const ActionButton = ({ title, onPress, variant = "secondary" }: ActionButtonProps) => {
   const { theme } = useTheme();
 
@@ -48,12 +51,15 @@ const ActionButton = ({ title, onPress, variant = "secondary" }: ActionButtonPro
   );
 };
 
+  /**
+ *  requests tab
+ */
 const RequestsTab = () => {
   const { theme } = useTheme();
   const styles = createGlobalStyles(theme);
   const headerRef = useRef<HeaderRef>(null);
 
-  const { isAuthenticated, profileData } = useAuth();
+  const { isAuthenticated, profileData } = useAuthStore();
   const isAdmin = profileData?.role === "admin";
   const isVerifiedDonor = profileData?.verified === true;
 
@@ -61,7 +67,12 @@ const RequestsTab = () => {
     headerRef.current?.handleScroll(event);
   }, []);
 
+  /**
+   * Require login
+   */
   const requireLogin = (next: () => void) => {
+    
+    
     if (!isAuthenticated) {
       Alert.alert("Please log in", "Log in to continue.");
       return;

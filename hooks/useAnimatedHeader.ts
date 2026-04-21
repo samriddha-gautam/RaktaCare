@@ -58,15 +58,21 @@ export const useAnimatedHeader = (options: UseAnimatedHeaderOptions = {}) => {
         // Always update lastScrollY to prevent getting stuck
         const shouldUpdateLastScrollY = Math.abs(scrollDiff) > 5;
 
+        
+        
         if (scrollDiff > hideThreshold && isHeaderVisible && currentScrollY > minScrollY) {
           // Scrolling down significantly - hide header
           hideHeader();
+          
+          
           if (shouldUpdateLastScrollY) {
             lastScrollY.current = currentScrollY;
           }
         } else if (scrollDiff < -showThreshold && !isHeaderVisible) {
           // Scrolling up significantly - show header
           showHeader();
+          
+          
           if (shouldUpdateLastScrollY) {
             lastScrollY.current = currentScrollY;
           }
@@ -76,6 +82,7 @@ export const useAnimatedHeader = (options: UseAnimatedHeaderOptions = {}) => {
         }
 
         // Handle edge cases
+        
         if (currentScrollY <= 0) {
           // At top of scroll - always show header
           showHeader();
@@ -95,6 +102,8 @@ export const useAnimatedHeader = (options: UseAnimatedHeaderOptions = {}) => {
 
   // Manual control functions
   const toggleHeader = useCallback(() => {
+    
+    
     if (isHeaderVisible) {
       hideHeader();
     } else {

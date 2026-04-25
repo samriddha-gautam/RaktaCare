@@ -22,10 +22,7 @@ import { scoreDonor } from "@/utils/donorScoring";
  */
 export const BloodAlgorithmService = {
   
-  /**
-   * Algorithm 6: Notification Trigger Logic
-   * Finds top 10 compatible donors within a radius and prepares them for notification.
-   */
+ 
   findDonorsForRequest: async (requestId: string, center: [number, number], radiusKm: number, bloodType: string, urgency: 'critical' | 'urgent' | 'standard') => {
     const compatibleGroups = getCompatibleDonorGroups(bloodType);
     const bounds = geohashQueryBounds(center, radiusKm * 1000);
@@ -83,10 +80,6 @@ export const BloodAlgorithmService = {
     return topDonors;
   },
 
-  /**
-   * Algorithm 4: Escalating Radius Geofencing
-   * Logic to expand search radius if request is still pending.
-   */
   escalateRequestRadius: async (requestId: string) => {
     const requestRef = doc(db, "bloodRequests", requestId);
     const requestSnap = await getDocs(query(collection(db, "bloodRequests"), where("__name__", "==", requestId)));
@@ -121,10 +114,7 @@ export const BloodAlgorithmService = {
     });
   },
 
-  /**
-   * Algorithm 5: Priority Queue Logic
-   * Calculates priority for simultaneous requests.
-   */
+
   calculateRequestPriority: (request: any) => {
     const urgencyWeight = {
       critical: 1.0,

@@ -67,7 +67,7 @@ export default function RequestDetailsScreen() {
     };
 
     if (id) {
-        load();
+       load();
     }
   }, [id]);
 

@@ -1,21 +1,22 @@
-import { db } from "@/services/firebase/config";
-import { 
-  collection, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  startAt, 
-  endAt,
-  doc,
-  updateDoc,
-  arrayUnion,
-  Timestamp,
-  serverTimestamp
-} from "firebase/firestore";
-import { geohashQueryBounds, distanceBetween } from "geofire-common";
+  import { db } from "@/services/firebase/config";
 import { getCompatibleDonorGroups } from "@/utils/bloodCompatibility";
 import { scoreDonor } from "@/utils/donorScoring";
+import {
+  arrayUnion,
+  collection,
+  doc,
+  endAt,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  serverTimestamp,
+  startAt,
+  Timestamp,
+  updateDoc,
+  where
+} from "firebase/firestore";
+import { distanceBetween, geohashQueryBounds } from "geofire-common";
 
 /**
  * Service to handle complex matching algorithms (Algos 4, 5, 6)
@@ -87,12 +88,11 @@ export const BloodAlgorithmService = {
    * Algorithm 4: Escalating Radius Geofencing
    * Logic to expand search radius if request is still pending.
    */
-  escalateRequestRadius: async (requestId: string) => {
-    const requestRef = doc(db, "bloodRequests", requestId);
-    const requestSnap = await getDocs(query(collection(db, "bloodRequests"), where("__name__", "==", requestId)));
-    if (requestSnap.empty) return;
-
-    const request = requestSnap.docs[0].data();
+escalateRequestRadius: async (requestId: string) => {
+  const requestRef = doc(db, "bloodRequests", requestId);
+  const requestSnap = await getDoc(requestRef);
+  if (!requestSnap.exists()) return;
+  const request = requestSnap.data();
     if (request.status !== "pending") return;
 
     const currentRadius = request.currentRadius || 5;

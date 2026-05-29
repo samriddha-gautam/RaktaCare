@@ -1,26 +1,26 @@
 import Button from "@/components/common/Button";
-import { useAuthStore } from "@/stores/authStore";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
-  approveVerificationRequest,
-  listPendingVerificationRequests,
-  rejectVerificationRequest,
+    approveVerificationRequest,
+    listPendingVerificationRequests,
+    rejectVerificationRequest,
 } from "@/services/firebase/verification/adminVerificationRepo";
+import type { VerificationRequest } from "@/services/firebase/verification/verificationRepo";
+import { useAuthStore } from "@/stores/authStore";
 import { createGlobalStyles } from "@/styles/globalStyles";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import type { VerificationRequest } from "@/services/firebase/verification/verificationRepo";
 
 export default function AdminVerifications() {
   const router = useRouter();
